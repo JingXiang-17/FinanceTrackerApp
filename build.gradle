@@ -1,0 +1,22 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.luminous.financetracker' // Must match your package name
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.luminous.financetracker"
+        minSdk 24 // Minimum Android version your phone supports
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+}
+
+dependencies {
+    def room_version = "2.6.1"
+    implementation "androidx.room:room-runtime:$room_version"
+    annotationProcessor "androidx.room:room-compiler:$room_version"
+}
