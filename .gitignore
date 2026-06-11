@@ -1,3 +1,18 @@
+# Gradle Files
+.gradle/
+**/build/
+gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+.DS_Store
+
+# Local configuration
+local.properties
+
 # Compiled class file
 *.class
 
@@ -19,6 +34,12 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+# OS specific
+Thumbs.db
+*.swp
+*.swo
+*~
