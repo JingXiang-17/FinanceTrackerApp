@@ -1,8 +1,11 @@
 package com.luminous.financetracker.data.dao;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
+import androidx.room.Update;
 import com.luminous.financetracker.data.entity.Transaction;
 import java.util.List;
 
@@ -15,10 +18,10 @@ public interface TransactionDao {
 
     // 1. Fetch ALL transactions
     @Query("SELECT * FROM transactions")
-    List<Transaction> getAllTransactions();
+    LiveData<List<Transaction>> getAllTransactions();
 
     // 2. Fetch by date
-    @Query("SELECT * FROM transactions WHERE date = :date")
+    @Query("SELECT * FROM transactions WHERE timestamp = :date")
     List<Transaction> getTransactionsByDate(long date);
 
     // 3. Update the transaction details if have typo or anything
@@ -29,5 +32,12 @@ public interface TransactionDao {
     @Delete
     void delete(Transaction transaction);
 
+    // 5. Retrieve a specific entity by its unique ID for Edit Mode
+    @Query("SELECT * FROM transactions WHERE id = :transactionId LIMIT 1")
+    Transaction getTransactionById(int transactionId);
 
+    // 6. Calculate total spent for the dynamic summation card
+    // You can pass timestamp boundaries to group data by the current day or month
+    @Query("SELECT SUM(amount) FROM transactions WHERE timestamp >= :startDate AND timestamp <= :endDate")
+    LiveData<Double> getTotalSpentByDateRange(long startDate, long endDate);
 }
