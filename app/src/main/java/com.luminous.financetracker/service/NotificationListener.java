@@ -16,7 +16,7 @@ public class NotificationListener extends NotificationListenerService {
     // automatically every time any notification hits the phone.
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
-        // TODO 1 : Get and filter the package names of a notification
+        // 1 : Get and filter the package names of a notification
         String packageName = sbn.getPackageName();
         // Define the financial apps that matters
         List<String> targetApps = Arrays.asList(
@@ -43,7 +43,7 @@ public class NotificationListener extends NotificationListenerService {
             return;
         }
 
-        // TODO 2 : Get and filter the notification text
+        // 2 : Get and filter the notification text
         // We use the official Android constant for safety
         String text = sbn.getNotification().extras.getString(android.app.Notification.EXTRA_TEXT);
 
@@ -52,12 +52,19 @@ public class NotificationListener extends NotificationListenerService {
             return;
         }
 
-        // TODO 3 : Extract the amount from 'text' using Regex
+        // 3 : Extract the amount from 'text' using Regex
         String lowercase = text.toLowerCase();
         if (lowercase.contains("transferred to you") || lowercase.contains("received")) { //mainly to address transferred keyword from tng notification
             return;
         }
+        boolean isPromotion = (lowercase.contains("to get") || (lowercase.contains("to win")) || lowercase.contains("min spend") || lowercase.contains("min spent") || lowercase.contains("minimum spend") ||
+                lowercase.contains ("minimum spent") || lowercase.contains ("up to") || lowercase.contains ("win rm") || lowercase.contains ("terms and conditions") || lowercase.contains ("t&c") || lowercase.contains ("terms & conditions") ||
+                lowercase.contains ("t & c") || lowercase.contains ("promo"));
         boolean isExpense = (lowercase.contains("spend") || lowercase.contains("paid") || lowercase.contains("deducted") || lowercase.contains("payment") || lowercase.contains("transferred") || lowercase.contains("spent"));
+
+        if (isPromotion) {
+            return;
+        }
         if (!isExpense) { //this is cash in.
             if (lowercase.contains("receive") || lowercase.contains("credit") || lowercase.contains("top up") || lowercase.contains("ka-ching") || lowercase.contains("refund")) {
                 return;
@@ -73,11 +80,11 @@ public class NotificationListener extends NotificationListenerService {
                 String amountString = matcher.group(1);
                 double amount = Double.parseDouble(amountString);
 
-                // TODO 4: Construct the Transaction entity
+                // 4: Construct the Transaction entity
                 long currentTimestamp = System.currentTimeMillis();
                 Transaction newTransaction = new Transaction(amount, text, currentTimestamp);
 
-                // TODO 5: Dispatch to the repository to save asynchronously
+                // 5: Dispatch to the repository to save asynchronously
                 TransactionRepository repository = new TransactionRepository(getApplication());
                 repository.insert(newTransaction);
 

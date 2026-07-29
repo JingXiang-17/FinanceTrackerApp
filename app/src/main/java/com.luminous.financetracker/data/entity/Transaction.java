@@ -7,32 +7,31 @@ import androidx.room.PrimaryKey;
 @Entity(tableName = "transactions")
 public class Transaction {
 
-    // TODO: Define the primary key field (auto-generated)
+    // Define the primary key field (auto-generated)
     @PrimaryKey(autoGenerate = true)
     private int id;
 
-    // TODO: Define fields for amount, category, date, and description
-    // Hint: Use double for amount, String for transaction detail, and maybe a long for date/timestamp
+    // Define fields for amount, category, date, and description
     private double amount;
-    private String transactionDetail;
+    private String text;
     private long timestamp;
 
-    // TODO: Create a constructor to initialize these fields
+    // Create a constructor to initialize these fields
     public Transaction () {
         this.amount=0;
-        this.transactionDetail="";
+        this.text="";
         this.timestamp=0;
     }
 
-    public Transaction (double amount, String transactionDetail,  long timestamp) {
+    public Transaction (double amount, String text,  long timestamp) {
         this.amount=amount;
-        this.transactionDetail=transactionDetail;
+        this.text=text;
         this.timestamp=timestamp;
     }
 
-    // TODO: Create Getters for all fields
+    // Create Getters for all fields
     // Hint: Room needs these to read the data
-    // TODO: Create Setters for all fields (if you need to update data later)
+    // Create Setters for all fields (if you need to update data later)
     // Hint: Room uses these to modify data
     public int getId () {
         return this.id;
@@ -50,12 +49,12 @@ public class Transaction {
         this.amount=amount;
     }
 
-    public String getTransactionDetail () {
-        return this.transactionDetail;
+    public String getText () {
+        return this.text;
     }
 
-    public void setTransactionDetail (String transactionDetail) {
-        this.transactionDetail=transactionDetail;
+    public void setText (String text) {
+        this.text=text;
     }
 
     public long getTimestamp () {
