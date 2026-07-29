@@ -59,7 +59,8 @@ public class NotificationListener extends NotificationListenerService {
         }
         boolean isPromotion = (lowercase.contains("to get") || (lowercase.contains("to win")) || lowercase.contains("min spend") || lowercase.contains("min spent") || lowercase.contains("minimum spend") ||
                 lowercase.contains ("minimum spent") || lowercase.contains ("up to") || lowercase.contains ("win rm") || lowercase.contains ("terms and conditions") || lowercase.contains ("t&c") || lowercase.contains ("terms & conditions") ||
-                lowercase.contains ("t & c") || lowercase.contains ("promo"));
+                lowercase.contains ("t & c") || lowercase.contains ("promo") || lowercase.contains ("expiring") || lowercase.contains ("expire") || lowercase.contains ("cashback") ||
+                lowercase.contains ("voucher") || lowercase.contains ("survey"));
         boolean isExpense = (lowercase.contains("spend") || lowercase.contains("paid") || lowercase.contains("deducted") || lowercase.contains("payment") || lowercase.contains("transferred") || lowercase.contains("spent"));
 
         if (isPromotion) {

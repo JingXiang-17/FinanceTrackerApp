@@ -5,13 +5,16 @@ import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import com.luminous.financetracker.data.dao.TransactionDao;
+import com.luminous.financetracker.data.dao.BudgetDao;
+import com.luminous.financetracker.data.entity.Budget;
 import com.luminous.financetracker.data.entity.Transaction;
 
-@Database(entities = {Transaction.class}, version = 1, exportSchema = false)
+@Database(entities = {Transaction.class, Budget.class}, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     // This connects your DAO to the database
     public abstract TransactionDao transactionDao();
+    public abstract BudgetDao budgetDao();
 
     // The "Manager" (Singleton) instance
     private static volatile AppDatabase INSTANCE;

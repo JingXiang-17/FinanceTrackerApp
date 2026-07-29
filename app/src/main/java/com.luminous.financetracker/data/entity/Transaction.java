@@ -3,7 +3,6 @@ package com.luminous.financetracker.data.entity;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
-// TODO: Add the Entity annotation with the table name here
 @Entity(tableName = "transactions")
 public class Transaction {
 
