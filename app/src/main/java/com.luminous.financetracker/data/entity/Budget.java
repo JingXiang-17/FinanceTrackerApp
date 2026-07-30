@@ -5,17 +5,12 @@ import androidx.room.PrimaryKey;
 @Entity(tableName = "budget_table")
 public class Budget {
 
-    // TODO 3: Add the @PrimaryKey annotation.
     @PrimaryKey (autoGenerate = true)
     private int id;
-
-    // TODO 4: Declare a variable to hold the budget limit.
     private double budget = 0;
-
-    // TODO 5: (Optional) Declare a variable to represent the month or category.
     private String day = "", week = "", month = "", category = "";
 
-    // TODO 6: Generate your Constructor.
+
     public Budget (double budget, String day, String week, String month, String category) {
         this.budget = budget;
         this.day = day;
@@ -24,7 +19,6 @@ public class Budget {
         this.category = category;
     }
 
-    // TODO 7: Generate Getters and Setters for ALL your variables.
     public int getId () {
         return this.id;
     }
