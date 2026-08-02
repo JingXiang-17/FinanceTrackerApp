@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Base application theme -->
+    <style name="Theme.MyApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">#9A56B9</item>
+        <item name="colorPrimaryVariant">#7A3F94</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">#2648A4</item>
+        <item name="colorSecondaryVariant">#1B3578</item>
+        <item name="colorOnSecondary">#FFFFFF</item>
+
+        <!-- Status bar color -->
+        <item name="android:statusBarColor">#9A56B9</item>
+
+        <!-- Window background -->
+        <item name="android:windowBackground">#F8F9FB</item>
+    </style>
+
+</resources>

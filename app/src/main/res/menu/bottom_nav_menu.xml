@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/bottom_home_smile"
+        android:title="Home" />
+
+    <item
+        android:id="@+id/nav_stats"
+        android:icon="@drawable/bottom_pie_chart"
+        android:title="Stats" />
+
+    <item
+        android:id="@+id/nav_budget"
+        android:icon="@drawable/bottom_budget_coins_stacked"
+        android:title="Budget" />
+
+</menu>

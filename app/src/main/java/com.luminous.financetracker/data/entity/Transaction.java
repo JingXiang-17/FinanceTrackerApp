@@ -16,12 +16,6 @@ public class Transaction {
     private long timestamp;
 
     // Create a constructor to initialize these fields
-    public Transaction () {
-        this.amount=0;
-        this.text="";
-        this.timestamp=0;
-    }
-
     public Transaction (double amount, String text,  long timestamp) {
         this.amount=amount;
         this.text=text;

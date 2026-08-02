@@ -270,12 +270,13 @@
                 android:id="@+id/rv_transactions"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
+                android:layout_marginTop="24dp"
                 android:nestedScrollingEnabled="false"
                 android:paddingHorizontal="24dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 app:layout_constraintTop_toBottomOf="@id/tv_transactions_today"
                 tools:itemCount="4"
+                tools:layout_editor_absoluteX="-46dp"
                 tools:listitem="@layout/item_transaction" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
@@ -284,10 +285,15 @@
     <!-- Bottom Navigation Bar -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:background="#FFFFFF"
         app:elevation="16dp"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:itemIconTint="#9A56B9"
+        app:labelVisibilityMode="unlabeled"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:menu="@menu/bottom_nav_menu" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
