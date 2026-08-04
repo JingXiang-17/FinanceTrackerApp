@@ -36,22 +36,18 @@ public class TransactionRepository {
     // --- WRITE OPERATIONS (Background Thread) ---
 
     public void insert(Transaction transaction) {
-        // TODO: Tell the executorService to execute a background task
-        // TODO: Inside that task, call transactionDao.insert(transaction)
         executorService.execute(()->{
             transactionDao.insert(transaction);
         });
     }
 
     public void update(Transaction transaction) {
-        // TODO: Do the same for update
         executorService.execute(()->{
             transactionDao.update(transaction);
         });
     }
 
     public void delete(Transaction transaction) {
-        // TODO: Do the same for delete
         executorService.execute(()->{
             transactionDao.delete(transaction);
         });
@@ -68,6 +64,12 @@ public class TransactionRepository {
         // LiveData automatically handles its own background threading for reads
         return transactionDao.getTotalSpentByDateRange(startDate, endDate);
     }
+
+    // --- NEW: Time-based total query added here ---
+    public LiveData<Double> getTotalSpentSince(long startTimestamp) {
+        return transactionDao.getTotalSpentSince(startTimestamp);
+    }
+    // ---------------------------------------------
 
     public void getTransactionById(int id, final TransactionCallback callback) {
         // Dispatched to background thread via ExecutorService as specified in the PDF
@@ -87,7 +89,6 @@ public class TransactionRepository {
 
     // --- Budget Methods ---
 
-    // TODO 3: Create a getter for the currentBudget LiveData
     public LiveData<List<Budget>> getBudget() {
         return currentBudget;
     }
@@ -95,7 +96,6 @@ public class TransactionRepository {
         return budgetDao.getBudgetByCategory(categoryName);
     }
 
-    // TODO 4: Create an insert method for the budget that runs on the background thread
     public void insertBudget(Budget budget) {
         executorService.execute(() -> {
             budgetDao.insertBudget(budget);

@@ -13,7 +13,7 @@ public class TransactionViewModel extends AndroidViewModel {
 
     private TransactionRepository repository;
     private LiveData<List<Transaction>> allTransactions;
-    private LiveData <List<Budget>> budget;
+    private LiveData<List<Budget>> budget;
 
     public TransactionViewModel(@NonNull Application application) {
         super(application);
@@ -30,6 +30,19 @@ public class TransactionViewModel extends AndroidViewModel {
 
     public void insert(Transaction transaction) {
         repository.insert(transaction);
+    }
+
+    public void update(Transaction transaction) {
+        repository.update(transaction);
+    }
+
+    public void delete(Transaction transaction) {
+        repository.delete(transaction);
+    }
+
+    // --- NEW: Time-based total queries ---
+    public LiveData<Double> getTotalSpentSince(long startTimestamp) {
+        return repository.getTotalSpentSince(startTimestamp);
     }
 
     // --- Budget Methods ---

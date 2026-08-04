@@ -17,6 +17,21 @@
             </intent-filter>
         </service>
 
+        <!-- Main Entry Point (Dashboard) -->
+        <activity
+            android:name=".ui.dashboard.DashboardActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Other Activities -->
+        <activity android:name=".ui.budget.BudgetActivity" android:exported="false" />
+        <activity android:name=".ui.statistics.StatisticsActivity" android:exported="false" />
+        <activity android:name=".ui.settings.SettingsActivity" android:exported="false" />
+
     </application>
 
 </manifest>

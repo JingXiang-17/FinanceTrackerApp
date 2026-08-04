@@ -24,6 +24,11 @@ public interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE timestamp = :date")
     List<Transaction> getTransactionsByDate(long date);
 
+    // --- FIXED: Changed transaction_table to transactions ---
+    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM transactions WHERE timestamp >= :startTimestamp")
+    LiveData<Double> getTotalSpentSince(long startTimestamp);
+    // --------------------------------------------------------
+
     // 3. Update the transaction details if have typo or anything
     @Update
     void update(Transaction transaction);
@@ -37,7 +42,6 @@ public interface TransactionDao {
     Transaction getTransactionById(int transactionId);
 
     // 6. Calculate total spent for the dynamic summation card
-    // You can pass timestamp boundaries to group data by the current day or month
     @Query("SELECT SUM(amount) FROM transactions WHERE timestamp >= :startDate AND timestamp <= :endDate")
     LiveData<Double> getTotalSpentByDateRange(long startDate, long endDate);
 }

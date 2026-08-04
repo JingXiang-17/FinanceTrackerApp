@@ -14,11 +14,13 @@ public class Transaction {
     private double amount;
     private String text;
     private long timestamp;
+    private String category;
 
     // Create a constructor to initialize these fields
-    public Transaction (double amount, String text,  long timestamp) {
+    public Transaction (double amount, String text, String category, long timestamp) {
         this.amount=amount;
         this.text=text;
+        this.category=category;
         this.timestamp=timestamp;
     }
 
@@ -49,6 +51,10 @@ public class Transaction {
     public void setText (String text) {
         this.text=text;
     }
+    
+    public String getCategory () { return this.category; }
+
+    public void setCategory (String category) { this.category=category; }
 
     public long getTimestamp () {
         return this.timestamp;

@@ -1,19 +1,19 @@
 package com.luminous.financetracker.service;
 
-import android.app.Notification;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import com.luminous.financetracker.data.entity.Transaction;
 import com.luminous.financetracker.repository.TransactionRepository;
+
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class NotificationListener extends NotificationListenerService {
 
-    // This method is required. The Android OS will trigger it
-    // automatically every time any notification hits the phone.
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
         // 1 : Get and filter the package names of a notification
@@ -44,7 +44,6 @@ public class NotificationListener extends NotificationListenerService {
         }
 
         // 2 : Get and filter the notification text
-        // We use the official Android constant for safety
         String text = sbn.getNotification().extras.getString(android.app.Notification.EXTRA_TEXT);
 
         // If it's a silent notification with no text, drop it
@@ -80,10 +79,13 @@ public class NotificationListener extends NotificationListenerService {
             try {
                 String amountString = matcher.group(1);
                 double amount = Double.parseDouble(amountString);
-
-                // 4: Construct the Transaction entity
                 long currentTimestamp = System.currentTimeMillis();
-                Transaction newTransaction = new Transaction(amount, text, currentTimestamp);
+
+                // --- CATEGORY MATCHING ENGINE ---
+                String category = determineCategory(lowercase);
+
+                // 4: Construct the Transaction entity with the new category parameter
+                Transaction newTransaction = new Transaction(amount, text, category, currentTimestamp);
 
                 // 5: Dispatch to the repository to save asynchronously
                 TransactionRepository repository = new TransactionRepository(getApplication());
@@ -95,9 +97,44 @@ public class NotificationListener extends NotificationListenerService {
         }
     }
 
-    // This method is also required. It triggers when a user swipes a notification away.
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
 
+    }
+
+    // --- NEW HELPER METHOD ---
+    private String determineCategory(String lowercaseText) {
+        Map<String, String> keywordMap = new HashMap<>();
+
+        // Food & Dining
+        keywordMap.put("kfc", "Food");
+        keywordMap.put("luck bros kopi", "Food");
+        keywordMap.put("sushi village", "Food");
+        keywordMap.put("uni ramen", "Food");
+        keywordMap.put("taiwan tea house", "Food");
+        keywordMap.put("emart24", "Food");
+
+        // Beverages
+        keywordMap.put("luckin coffee", "Beverages");
+        keywordMap.put("gigi coffee", "Beverages");
+        keywordMap.put("koppiku", "Beverages");
+        keywordMap.put("tealive", "Beverages");
+        keywordMap.put("zus coffee", "Beverages"); // FIXED: Must be fully lowercase
+        keywordMap.put("water bar", "Beverages");
+
+        // Entertainment & Travel
+        keywordMap.put("golden screen cinemas", "Entertainment");
+        keywordMap.put("legoland", "Entertainment");
+        keywordMap.put("ktm", "Transport");
+
+        // Scan the notification for matches
+        for (Map.Entry<String, String> entry : keywordMap.entrySet()) {
+            if (lowercaseText.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+
+        // Fallback for everything else
+        return "Uncategorized";
     }
 }

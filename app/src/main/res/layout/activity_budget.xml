@@ -40,8 +40,9 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <!-- Search Icon Button -->
+            <!-- Search Icon Button, hidden, update later -->
             <com.google.android.material.card.MaterialCardView
+                android:visibility="gone"
                 android:id="@+id/btn_search"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
@@ -61,6 +62,7 @@
 
             <!-- Export Icon Button -->
             <com.google.android.material.card.MaterialCardView
+                android:visibility="gone"
                 android:id="@+id/btn_export"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
@@ -74,7 +76,7 @@
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:layout_gravity="center"
-                    android:src="@android:drawable/ic_menu_save"
+                    android:src="@drawable/general_download_export"
                     app:tint="#000000" />
             </com.google.android.material.card.MaterialCardView>
 
@@ -91,70 +93,6 @@
                 app:layout_constraintTop_toBottomOf="@id/header_background"
                 tools:itemCount="3"
                 tools:listitem="@layout/item_time_budget" />
-
-            <!-- Customize Budget by Categories Title -->
-            <TextView
-                android:id="@+id/tv_categories_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="24dp"
-                android:layout_marginTop="32dp"
-                android:text="Customize budget by categories"
-                android:textColor="#333333"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/rv_time_budgets" />
-
-            <!-- Multi-colored indicator line -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/card_color_indicator"
-                android:layout_width="match_parent"
-                android:layout_height="4dp"
-                android:layout_marginHorizontal="24dp"
-                android:layout_marginTop="12dp"
-                app:cardCornerRadius="2dp"
-                app:cardElevation="0dp"
-                app:layout_constraintTop_toBottomOf="@id/tv_categories_title">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="horizontal"
-                    android:weightSum="100">
-                    <!-- Blue segment (45%) -->
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="45"
-                        android:background="#6C5CE7" />
-                    <!-- Teal segment (35%) -->
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="35"
-                        android:background="#00CEC9" />
-                    <!-- Yellow segment (20%) -->
-                    <View
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="20"
-                        android:background="#FDCB6E" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <!-- Category Budgets List -->
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_category_budgets"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:nestedScrollingEnabled="false"
-                android:paddingHorizontal="24dp"
-                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                app:layout_constraintTop_toBottomOf="@id/card_color_indicator"
-                tools:itemCount="2"
-                tools:listitem="@layout/item_category_budget" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>

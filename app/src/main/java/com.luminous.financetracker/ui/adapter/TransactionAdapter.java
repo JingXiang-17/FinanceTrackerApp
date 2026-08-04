@@ -3,6 +3,7 @@ package com.luminous.financetracker.ui.adapter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
@@ -11,28 +12,38 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.luminous.financetracker.R;
 import com.luminous.financetracker.data.entity.Transaction;
 
-// 1. Extend ListAdapter instead of RecyclerView.Adapter
 public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdapter.TransactionHolder> {
+
+    // 1. --- ADDED: The Interface for the Click Listener ---
+    private OnItemClickListener listener;
+
+    public interface OnItemClickListener {
+        void onEditClick(Transaction transaction);
+        void onDeleteClick(Transaction transaction);
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
+    }
+    // -----------------------------------------------------
 
     public TransactionAdapter() {
         super(DIFF_CALLBACK);
     }
 
-    // 2. The DiffUtil Callback calculates the differences between the old and new lists
     private static final DiffUtil.ItemCallback<Transaction> DIFF_CALLBACK = new DiffUtil.ItemCallback<Transaction>() {
         @Override
         public boolean areItemsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
-            // Check if the items represent the same database entry (usually by ID)
-            // Note: Make sure your Transaction entity has a getId() method for its primary key!
             return oldItem.getId() == newItem.getId();
         }
 
         @Override
         public boolean areContentsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
-            // Check if any visual details changed (amount, text, timestamp)
+            // 2. --- UPDATED: Added category check so the UI updates when you edit a category! ---
             return oldItem.getAmount() == newItem.getAmount() &&
                     oldItem.getTimestamp() == newItem.getTimestamp() &&
-                    oldItem.getText().equals(newItem.getText());
+                    oldItem.getText().equals(newItem.getText()) &&
+                    oldItem.getCategory().equals(newItem.getCategory());
         }
     };
 
@@ -46,24 +57,40 @@ public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdap
 
     @Override
     public void onBindViewHolder(@NonNull TransactionHolder holder, int position) {
-        // ListAdapter provides a built-in getItem(position) method
         Transaction currentTransaction = getItem(position);
 
-        // Populate the UI components
         holder.textViewAmount.setText(String.format("RM %.2f", currentTransaction.getAmount()));
-        holder.textViewDesc.setText(currentTransaction.getText());
+        holder.textViewTitle.setText(currentTransaction.getText());
     }
 
-    // 3. Inner class holding the views
     class TransactionHolder extends RecyclerView.ViewHolder {
         private TextView textViewAmount;
-        private TextView textViewDesc;
+        private TextView textViewTitle;
+        private ImageView ivEdit;
+        private ImageView ivDelete;
 
         public TransactionHolder(@NonNull View itemView) {
             super(itemView);
-            // Link views to the IDs you created in item_transaction.xml
-            textViewAmount = itemView.findViewById(R.id.text_transaction_amount);
-            textViewDesc = itemView.findViewById(R.id.text_transaction_desc);
+            textViewTitle = itemView.findViewById(R.id.tv_transaction_title);
+            textViewAmount = itemView.findViewById(R.id.tv_transaction_amount);
+            ivEdit = itemView.findViewById(R.id.iv_edit);
+            ivDelete = itemView.findViewById(R.id.iv_delete);
+
+            // Listen for Edit clicks
+            ivEdit.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (listener != null && position != RecyclerView.NO_POSITION) {
+                    listener.onEditClick(getItem(position));
+                }
+            });
+
+            // Listen for Delete clicks
+            ivDelete.setOnClickListener(v -> {
+                int position = getAdapterPosition();
+                if (listener != null && position != RecyclerView.NO_POSITION) {
+                    listener.onDeleteClick(getItem(position));
+                }
+            });
         }
     }
 }

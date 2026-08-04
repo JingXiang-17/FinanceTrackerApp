@@ -80,11 +80,12 @@
                 app:layout_constraintBottom_toBottomOf="@id/profile_image_card"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="@id/profile_image_card">
+
                 <ImageView
                     android:layout_width="24dp"
-                    android:layout_height="24dp"
+                    android:layout_height="match_parent"
                     android:layout_gravity="center"
-                    android:src="@android:drawable/ic_input_add"
+                    android:src="@drawable/general_add"
                     app:tint="#000000" />
             </com.google.android.material.card.MaterialCardView>
 
