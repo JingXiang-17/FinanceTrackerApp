@@ -2,8 +2,11 @@ package com.luminous.financetracker.service;
 
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
+
+import com.luminous.financetracker.data.database.FinanceDatabase; // Added Import
 import com.luminous.financetracker.data.entity.Transaction;
 import com.luminous.financetracker.repository.TransactionRepository;
+import com.luminous.financetracker.util.BudgetAlertManager; // Added Import
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -91,6 +94,10 @@ public class NotificationListener extends NotificationListenerService {
                 TransactionRepository repository = new TransactionRepository(getApplication());
                 repository.insert(newTransaction);
 
+                // 6: Trigger the Budget Alerts check
+                FinanceDatabase db = FinanceDatabase.getDatabase(getApplicationContext());
+                BudgetAlertManager.checkBudgets(getApplicationContext(), db.transactionDao());
+
             } catch (NumberFormatException e) {
                 e.printStackTrace();
             }
@@ -102,30 +109,32 @@ public class NotificationListener extends NotificationListenerService {
 
     }
 
-    // --- NEW HELPER METHOD ---
+    // --- HELPER METHOD ---
     private String determineCategory(String lowercaseText) {
         Map<String, String> keywordMap = new HashMap<>();
 
-        // Food & Dining
-        keywordMap.put("kfc", "Food");
-        keywordMap.put("luck bros kopi", "Food");
-        keywordMap.put("sushi village", "Food");
-        keywordMap.put("uni ramen", "Food");
-        keywordMap.put("taiwan tea house", "Food");
-        keywordMap.put("emart24", "Food");
+        // Food & Beverages (Merged)
+        keywordMap.put("kfc", "Food & Beverages");
+        keywordMap.put("luck bros kopi", "Food & Beverages");
+        keywordMap.put("sushi village", "Food & Beverages");
+        keywordMap.put("uni ramen", "Food & Beverages");
+        keywordMap.put("taiwan tea house", "Food & Beverages");
+        keywordMap.put("emart24", "Food & Beverages");
+        keywordMap.put("luckin coffee", "Food & Beverages");
+        keywordMap.put("gigi coffee", "Food & Beverages");
+        keywordMap.put("koppiku", "Food & Beverages");
+        keywordMap.put("tealive", "Food & Beverages");
+        keywordMap.put("zus coffee", "Food & Beverages");
+        keywordMap.put("water bar", "Food & Beverages");
 
-        // Beverages
-        keywordMap.put("luckin coffee", "Beverages");
-        keywordMap.put("gigi coffee", "Beverages");
-        keywordMap.put("koppiku", "Beverages");
-        keywordMap.put("tealive", "Beverages");
-        keywordMap.put("zus coffee", "Beverages"); // FIXED: Must be fully lowercase
-        keywordMap.put("water bar", "Beverages");
-
-        // Entertainment & Travel
+        // Entertainment
         keywordMap.put("golden screen cinemas", "Entertainment");
         keywordMap.put("legoland", "Entertainment");
+
+        // Transport
         keywordMap.put("ktm", "Transport");
+        keywordMap.put("airasia", "Transport"); // Added a standard airline catch just in case
+        keywordMap.put("malaysia airlines", "Transport");
 
         // Scan the notification for matches
         for (Map.Entry<String, String> entry : keywordMap.entrySet()) {
@@ -134,7 +143,7 @@ public class NotificationListener extends NotificationListenerService {
             }
         }
 
-        // Fallback for everything else
-        return "Uncategorized";
+        // Fallback for everything else (Matches your new dropdown)
+        return "Others";
     }
 }

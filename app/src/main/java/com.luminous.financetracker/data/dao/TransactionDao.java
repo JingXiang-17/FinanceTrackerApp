@@ -17,31 +17,34 @@ public interface TransactionDao {
     void insert(Transaction transaction);
 
     // 1. Fetch ALL transactions
-    @Query("SELECT * FROM transactions")
+    @Query("SELECT * FROM transaction_table")
     LiveData<List<Transaction>> getAllTransactions();
 
     // 2. Fetch by date
-    @Query("SELECT * FROM transactions WHERE timestamp = :date")
+    @Query("SELECT * FROM transaction_table WHERE timestamp = :date")
     List<Transaction> getTransactionsByDate(long date);
 
-    // --- FIXED: Changed transaction_table to transactions ---
-    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM transactions WHERE timestamp >= :startTimestamp")
+    // 3. Calculate total spent since a specific time
+    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM transaction_table WHERE timestamp >= :startTimestamp")
     LiveData<Double> getTotalSpentSince(long startTimestamp);
-    // --------------------------------------------------------
 
-    // 3. Update the transaction details if have typo or anything
+    // 4. Update the transaction details if have typo or anything
     @Update
     void update(Transaction transaction);
 
-    // 4. Delete a transaction
+    // 5. Delete a transaction
     @Delete
     void delete(Transaction transaction);
 
-    // 5. Retrieve a specific entity by its unique ID for Edit Mode
-    @Query("SELECT * FROM transactions WHERE id = :transactionId LIMIT 1")
+    // 6. Retrieve a specific entity by its unique ID for Edit Mode
+    @Query("SELECT * FROM transaction_table WHERE id = :transactionId LIMIT 1")
     Transaction getTransactionById(int transactionId);
 
-    // 6. Calculate total spent for the dynamic summation card
-    @Query("SELECT SUM(amount) FROM transactions WHERE timestamp >= :startDate AND timestamp <= :endDate")
+    // 7. Calculate total spent for the dynamic summation card
+    @Query("SELECT SUM(amount) FROM transaction_table WHERE timestamp >= :startDate AND timestamp <= :endDate")
     LiveData<Double> getTotalSpentByDateRange(long startDate, long endDate);
+
+    // 8. Synchronous total spent (for Background Budget checking)
+    @Query("SELECT SUM(amount) FROM transaction_table WHERE timestamp >= :startTime")
+    double getTotalSpentSinceSync(long startTime);
 }

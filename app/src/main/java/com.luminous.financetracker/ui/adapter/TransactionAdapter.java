@@ -3,29 +3,21 @@ package com.luminous.financetracker.ui.adapter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
+import android.widget.ImageView; // <-- Added this import
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.luminous.financetracker.R;
 import com.luminous.financetracker.data.entity.Transaction;
+import com.luminous.financetracker.util.TimeUtils;
 
 public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdapter.TransactionHolder> {
 
-    // 1. --- ADDED: The Interface for the Click Listener ---
     private OnItemClickListener listener;
-
-    public interface OnItemClickListener {
-        void onEditClick(Transaction transaction);
-        void onDeleteClick(Transaction transaction);
-    }
-
-    public void setOnItemClickListener(OnItemClickListener listener) {
-        this.listener = listener;
-    }
-    // -----------------------------------------------------
 
     public TransactionAdapter() {
         super(DIFF_CALLBACK);
@@ -39,19 +31,16 @@ public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdap
 
         @Override
         public boolean areContentsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
-            // 2. --- UPDATED: Added category check so the UI updates when you edit a category! ---
-            return oldItem.getAmount() == newItem.getAmount() &&
-                    oldItem.getTimestamp() == newItem.getTimestamp() &&
-                    oldItem.getText().equals(newItem.getText()) &&
-                    oldItem.getCategory().equals(newItem.getCategory());
+            return oldItem.getText().equals(newItem.getText()) &&
+                    oldItem.getAmount() == newItem.getAmount() &&
+                    oldItem.isExpanded() == newItem.isExpanded();
         }
     };
 
     @NonNull
     @Override
     public TransactionHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View itemView = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_transaction, parent, false);
+        View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_transaction, parent, false);
         return new TransactionHolder(itemView);
     }
 
@@ -59,33 +48,74 @@ public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdap
     public void onBindViewHolder(@NonNull TransactionHolder holder, int position) {
         Transaction currentTransaction = getItem(position);
 
-        holder.textViewAmount.setText(String.format("RM %.2f", currentTransaction.getAmount()));
-        holder.textViewTitle.setText(currentTransaction.getText());
+        holder.tvTitle.setText(currentTransaction.getText());
+        holder.tvAmount.setText(String.format("-RM %.2f", currentTransaction.getAmount()));
+
+        // Map the expanded details
+        holder.tvCategory.setText("Category: " + currentTransaction.getCategory());
+        holder.tvMerchant.setText("Merchant: " + currentTransaction.getMerchantName());
+        holder.tvPayment.setText("Paid with: " + currentTransaction.getPaymentMethod());
+        holder.tvTime.setText("Time: " + TimeUtils.formatTimestamp(currentTransaction.getTimestamp()));
+
+        if (currentTransaction.getNotes() != null && !currentTransaction.getNotes().isEmpty()) {
+            holder.tvNotes.setVisibility(View.VISIBLE);
+            holder.tvNotes.setText("Notes: " + currentTransaction.getNotes());
+        } else {
+            holder.tvNotes.setVisibility(View.GONE);
+        }
+
+        // Toggle Expand/Collapse visibility
+        holder.layoutExpandedDetails.setVisibility(currentTransaction.isExpanded() ? View.VISIBLE : View.GONE);
+
+        // Click header to expand
+        holder.layoutHeader.setOnClickListener(v -> {
+            currentTransaction.setExpanded(!currentTransaction.isExpanded());
+            notifyItemChanged(position); // Triggers re-render for this specific item
+        });
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
+    }
+
+    public interface OnItemClickListener {
+        void onEditClick(Transaction transaction);
+        void onDeleteClick(Transaction transaction);
     }
 
     class TransactionHolder extends RecyclerView.ViewHolder {
-        private TextView textViewAmount;
-        private TextView textViewTitle;
-        private ImageView ivEdit;
-        private ImageView ivDelete;
+        private TextView tvTitle, tvAmount;
+        private TextView tvCategory, tvMerchant, tvPayment, tvTime, tvNotes;
 
-        public TransactionHolder(@NonNull View itemView) {
+        // FIXED: Changed from TextView to ImageView to match your XML
+        private ImageView btnEdit, btnDelete;
+
+        private View layoutHeader;
+        private LinearLayout layoutExpandedDetails;
+
+        public TransactionHolder(View itemView) {
             super(itemView);
-            textViewTitle = itemView.findViewById(R.id.tv_transaction_title);
-            textViewAmount = itemView.findViewById(R.id.tv_transaction_amount);
-            ivEdit = itemView.findViewById(R.id.iv_edit);
-            ivDelete = itemView.findViewById(R.id.iv_delete);
+            layoutHeader = itemView.findViewById(R.id.layout_header);
+            layoutExpandedDetails = itemView.findViewById(R.id.layout_expanded_details);
 
-            // Listen for Edit clicks
-            ivEdit.setOnClickListener(v -> {
+            tvTitle = itemView.findViewById(R.id.tv_transaction_title);
+            tvAmount = itemView.findViewById(R.id.tv_transaction_amount);
+            tvCategory = itemView.findViewById(R.id.tv_detail_category);
+            tvMerchant = itemView.findViewById(R.id.tv_detail_merchant);
+            tvPayment = itemView.findViewById(R.id.tv_detail_payment);
+            tvTime = itemView.findViewById(R.id.tv_detail_time);
+            tvNotes = itemView.findViewById(R.id.tv_detail_notes);
+            btnEdit = itemView.findViewById(R.id.btn_edit);
+            btnDelete = itemView.findViewById(R.id.btn_delete);
+
+            btnEdit.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (listener != null && position != RecyclerView.NO_POSITION) {
                     listener.onEditClick(getItem(position));
                 }
             });
 
-            // Listen for Delete clicks
-            ivDelete.setOnClickListener(v -> {
+            btnDelete.setOnClickListener(v -> {
                 int position = getAdapterPosition();
                 if (listener != null && position != RecyclerView.NO_POSITION) {
                     listener.onDeleteClick(getItem(position));

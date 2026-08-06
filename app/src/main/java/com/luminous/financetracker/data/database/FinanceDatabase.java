@@ -7,13 +7,14 @@ import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 
 // Import your files here (Adjust package names if yours are slightly different)
+import com.luminous.financetracker.data.entity.Budget;
 import com.luminous.financetracker.data.entity.Transaction;
 import com.luminous.financetracker.data.dao.TransactionDao;
 import com.luminous.financetracker.util.Constants;
 import com.luminous.financetracker.util.DateConverter;
 
 // 1. Define the entities (tables) in your database
-@Database(entities = {Transaction.class}, version = 1, exportSchema = false)
+@Database(entities = {Transaction.class, Budget.class}, version = 2, exportSchema = false)
 // 2. THIS WIRES UP YOUR DATE CONVERTER!
 @TypeConverters({DateConverter.class})
 public abstract class FinanceDatabase extends RoomDatabase {

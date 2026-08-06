@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    app:cardBackgroundColor="#ABFFFFFF"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="6dp"
+    app:strokeColor="#E0E0E0"
+    app:strokeWidth="1dp">
+
+    <TextView
+        android:id="@+id/tv_marker_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:gravity="center"
+        android:textColor="#333333"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:lineSpacingExtra="4dp"/>
+
+</com.google.android.material.card.MaterialCardView>

@@ -1,67 +1,70 @@
 package com.luminous.financetracker.data.entity;
 
 import androidx.room.Entity;
+import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = "transactions")
+@Entity(tableName = "transaction_table")
 public class Transaction {
 
-    // Define the primary key field (auto-generated)
     @PrimaryKey(autoGenerate = true)
     private int id;
-
-    // Define fields for amount, category, date, and description
     private double amount;
-    private String text;
-    private long timestamp;
+    private String text; // We will use this as the Main Title
     private String category;
+    private long timestamp;
 
-    // Create a constructor to initialize these fields
-    public Transaction (double amount, String text, String category, long timestamp) {
-        this.amount=amount;
-        this.text=text;
-        this.category=category;
-        this.timestamp=timestamp;
+    // --- NEW FIELDS ---
+    private String paymentMethod;
+    private String merchantName;
+    private String notes;
+
+    // --- UI STATE (Ignored by Room) ---
+    @Ignore
+    private boolean isExpanded = false;
+
+    // Default Constructor for Room
+    public Transaction(double amount, String text, String category, long timestamp, String paymentMethod, String merchantName, String notes) {
+        this.amount = amount;
+        this.text = text;
+        this.category = category;
+        this.timestamp = timestamp;
+        this.paymentMethod = paymentMethod;
+        this.merchantName = merchantName;
+        this.notes = notes;
     }
 
-    // Create Getters for all fields
-    // Hint: Room needs these to read the data
-    // Create Setters for all fields (if you need to update data later)
-    // Hint: Room uses these to modify data
-    public int getId () {
-        return this.id;
+    // Backwards-compatible constructor so old code doesn't break
+    @Ignore
+    public Transaction(double amount, String text, String category, long timestamp) {
+        this(amount, text, category, timestamp, "Unknown", "Unknown", "");
     }
 
-    public void setId (int id) {
-        this.id=id;
-    }
+    // --- GETTERS & SETTERS ---
+    public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
 
-    public double getAmount () {
-        return this.amount;
-    }
+    public double getAmount() { return amount; }
+    public void setAmount(double amount) { this.amount = amount; }
 
-    public void setAmount (double amount) {
-        this.amount=amount;
-    }
+    public String getText() { return text; }
+    public void setText(String text) { this.text = text; }
 
-    public String getText () {
-        return this.text;
-    }
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 
-    public void setText (String text) {
-        this.text=text;
-    }
-    
-    public String getCategory () { return this.category; }
+    public long getTimestamp() { return timestamp; }
+    public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
 
-    public void setCategory (String category) { this.category=category; }
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 
-    public long getTimestamp () {
-        return this.timestamp;
-    }
+    public String getMerchantName() { return merchantName; }
+    public void setMerchantName(String merchantName) { this.merchantName = merchantName; }
 
-    public void setTimestamp (long timestamp) {
-        this.timestamp=timestamp;
-    } 
+    public String getNotes() { return notes; }
+    public void setNotes(String notes) { this.notes = notes; }
 
+    public boolean isExpanded() { return isExpanded; }
+    public void setExpanded(boolean expanded) { isExpanded = expanded; }
 }

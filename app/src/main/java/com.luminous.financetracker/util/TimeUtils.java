@@ -1,6 +1,9 @@
 package com.luminous.financetracker.util;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.Locale;
 
 public class TimeUtils {
 
@@ -32,5 +35,11 @@ public class TimeUtils {
         calendar.set(Calendar.SECOND, 0);
         calendar.set(Calendar.MILLISECOND, 0);
         return calendar.getTimeInMillis();
+    }
+
+    public static String formatTimestamp(long timestamp) {
+        // Formats the timestamp into something like "05 Aug 2026, 11:51 AM"
+        SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy, hh:mm a", Locale.getDefault());
+        return sdf.format(new Date(timestamp));
     }
 }

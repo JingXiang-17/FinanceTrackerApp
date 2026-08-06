@@ -1,144 +1,258 @@
 package com.luminous.financetracker.ui.dashboard;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ProgressBar;
+import android.widget.Spinner;
+import android.widget.ArrayAdapter;
+import android.widget.TextView;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-// Navigation Imports
+import com.facebook.shimmer.ShimmerFrameLayout;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.luminous.financetracker.R;
+import com.luminous.financetracker.data.database.FinanceDatabase;
 import com.luminous.financetracker.data.entity.Transaction;
+import com.luminous.financetracker.ui.adapter.CategoryAdapter;
 import com.luminous.financetracker.ui.adapter.TransactionAdapter;
 import com.luminous.financetracker.ui.budget.BudgetActivity;
 import com.luminous.financetracker.ui.settings.SettingsActivity;
 import com.luminous.financetracker.ui.statistics.StatisticsActivity;
+import com.luminous.financetracker.util.BudgetAlertManager;
+import com.luminous.financetracker.util.TimeUtils;
 import com.luminous.financetracker.viewmodel.TransactionViewModel;
 
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class DashboardActivity extends AppCompatActivity {
 
     private TransactionViewModel transactionViewModel;
+    private SharedPreferences sharedPreferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_dashboard);
 
-        // 1: Link to rv_transactions
-        RecyclerView recyclerView = findViewById(R.id.rv_transactions);
+        // 1. Initialize SharedPreferences for Budget Limits
+        sharedPreferences = getSharedPreferences("BudgetPrefs", MODE_PRIVATE);
+        float monthlyLimit = sharedPreferences.getFloat("limit_2", 1000.0f);
+        float dailyLimit = sharedPreferences.getFloat("limit_0", 30.0f);
 
-        // 2: Initialize your LayoutManager and attach it to the RecyclerView
-        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        // 2. Link UI Elements
+        TextView tvTotalBalance = findViewById(R.id.tv_total_balance);
+        TextView tvBudgetTitle = findViewById(R.id.tv_budget_title);
+        TextView tvBudgetSpent = findViewById(R.id.tv_budget_spent);
+        TextView tvBudgetTotal = findViewById(R.id.tv_budget_total);
+        TextView tvBudgetPercent = findViewById(R.id.tv_budget_percent);
+        ProgressBar progressBudget = findViewById(R.id.progress_budget);
+        TextView tvBudgetDaily = findViewById(R.id.tv_budget_daily);
+        TextView tvBudgetDaysLeft = findViewById(R.id.tv_budget_days_left);
 
-        // 3: Initialize the TransactionAdapter and attach it to the RecyclerView
-        TransactionAdapter adapter = new TransactionAdapter();
-        recyclerView.setAdapter(adapter);
+        // Link Shimmer and Empty State Elements
+        ShimmerFrameLayout shimmerContainer = findViewById(R.id.shimmer_view_container);
+        View realContentLayout = findViewById(R.id.real_content_layout);
+        TextView tvEmptyTransactions = findViewById(R.id.tv_empty_transactions);
 
-        // --- FIXED: The new two-action click listener for Edit and Delete ---
-        adapter.setOnItemClickListener(new TransactionAdapter.OnItemClickListener() {
+        // 3. Setup Date/Time Math
+        Calendar cal = Calendar.getInstance();
+        String currentMonthName = cal.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault());
+        int maxDays = cal.getActualMaximum(Calendar.DAY_OF_MONTH);
+        int currentDay = cal.get(Calendar.DAY_OF_MONTH);
+        int daysLeft = maxDays - currentDay;
+
+        tvBudgetTitle.setText(currentMonthName + " budget");
+        tvBudgetTotal.setText(String.format("/ RM %.2f", monthlyLimit));
+        tvBudgetDaily.setText(String.format("Daily budget - RM %.2f", dailyLimit));
+        tvBudgetDaysLeft.setText(daysLeft + " days left");
+
+        // 4. Setup Categories RecyclerView
+        RecyclerView rvCategories = findViewById(R.id.rv_categories);
+        rvCategories.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        CategoryAdapter categoryAdapter = new CategoryAdapter();
+        rvCategories.setAdapter(categoryAdapter);
+
+        // 5. Setup Transactions RecyclerView
+        RecyclerView rvTransactions = findViewById(R.id.rv_transactions);
+        rvTransactions.setLayoutManager(new LinearLayoutManager(this));
+        TransactionAdapter transactionAdapter = new TransactionAdapter();
+        rvTransactions.setAdapter(transactionAdapter);
+
+        transactionAdapter.setOnItemClickListener(new TransactionAdapter.OnItemClickListener() {
             @Override
-            public void onEditClick(Transaction transaction) {
-                // Launch the Edit Dialog
-                showEditTransactionDialog(transaction);
-            }
-
+            public void onEditClick(Transaction transaction) { showEditTransactionDialog(transaction); }
             @Override
-            public void onDeleteClick(Transaction transaction) {
-                // Delete it from Room immediately
-                transactionViewModel.delete(transaction);
-            }
+            public void onDeleteClick(Transaction transaction) { transactionViewModel.delete(transaction); }
         });
-        // ------------------------------------------------------------------
 
-        // 4: Initialize the TransactionViewModel using ViewModelProvider
+        // 6. Initialize ViewModel & Observe Data
         transactionViewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
 
-        // 5: Observe the LiveData from the ViewModel
-        transactionViewModel.getAllTransactions().observe(this, new Observer<List<Transaction>>() {
-            @Override
-            public void onChanged(List<Transaction> transactions) {
-                adapter.submitList(transactions);
+        // A. Observe Monthly Total for the Budget Card
+        transactionViewModel.getTotalSpentSince(TimeUtils.getStartOfMonth()).observe(this, monthlyTotal -> {
+            double spentThisMonth = (monthlyTotal != null) ? monthlyTotal : 0.0;
+
+            tvTotalBalance.setText(String.format("RM %.2f", spentThisMonth));
+            tvBudgetSpent.setText(String.format("RM %.2f", spentThisMonth));
+
+            int percent = (int) ((spentThisMonth / monthlyLimit) * 100);
+            progressBudget.setProgress(percent);
+            tvBudgetPercent.setText(percent + "%");
+        });
+
+        // B. Observe All Transactions for Categories, Recent List, and Loading States
+        transactionViewModel.getAllTransactions().observe(this, transactions -> {
+
+            // Stop Shimmer and show Real Content
+            shimmerContainer.stopShimmer();
+            shimmerContainer.setVisibility(View.GONE);
+            realContentLayout.setVisibility(View.VISIBLE);
+
+            // Handle Empty State Phase
+            if (transactions == null || transactions.isEmpty()) {
+                tvEmptyTransactions.setVisibility(View.VISIBLE);
+                rvTransactions.setVisibility(View.GONE);
+
+                // Feed hardcoded 0 values to the category adapter so they appear greyed out
+                Map<String, Double> emptyCategories = new HashMap<>();
+                emptyCategories.put("Food & Beverages", 0.0);
+                emptyCategories.put("Transport", 0.0);
+                emptyCategories.put("Entertainment", 0.0);
+                emptyCategories.put("Others", 0.0);
+                categoryAdapter.setCategories(emptyCategories);
+
+                transactionAdapter.submitList(new ArrayList<>()); // Clear list
+                return; // Exit early since there is no data to process
             }
+
+            // POPULATED STATE
+            tvEmptyTransactions.setVisibility(View.GONE);
+            rvTransactions.setVisibility(View.VISIBLE);
+
+            transactionAdapter.submitList(transactions); // Send to main list
+
+            // Aggregate Category Data for the current month
+            Map<String, Double> categoryTotals = new HashMap<>();
+            long startOfMonth = TimeUtils.getStartOfMonth();
+
+            for (Transaction t : transactions) {
+                if (t.getTimestamp() >= startOfMonth) {
+                    categoryTotals.put(t.getCategory(), categoryTotals.getOrDefault(t.getCategory(), 0.0) + t.getAmount());
+                }
+            }
+            categoryAdapter.setCategories(categoryTotals);
         });
 
-        // --- NEW: Wire up the manual Add button in your header (btn_add) ---
-        View btnAdd = findViewById(R.id.btn_add);
-        btnAdd.setOnClickListener(v -> {
-            showManualAddDialog();
-        });
-        // -------------------------------------------------------------------
+        // 7. Manual Add Button
+        findViewById(R.id.btn_add).setOnClickListener(v -> showManualAddDialog());
 
-        // 6: --- STICKY BOTTOM NAVIGATION LOGIC ---
+        // 8. "See All" Transactions Button
+        findViewById(R.id.tv_transactions_see_all).setOnClickListener(v -> {
+            showSeeAllDialog(transactionAdapter.getCurrentList());
+        });
+
+        // 9. Bottom Navigation Logic
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         bottomNavigationView.setSelectedItemId(R.id.nav_home);
 
         bottomNavigationView.setOnItemSelectedListener(item -> {
             int itemId = item.getItemId();
-
             if (itemId == R.id.nav_stats) {
                 startActivity(new Intent(getApplicationContext(), StatisticsActivity.class));
-                overridePendingTransition(0, 0);
-                finish();
-                return true;
+                overridePendingTransition(0, 0); finish(); return true;
             } else if (itemId == R.id.nav_budget) {
                 startActivity(new Intent(getApplicationContext(), BudgetActivity.class));
-                overridePendingTransition(0, 0);
-                finish();
-                return true;
+                overridePendingTransition(0, 0); finish(); return true;
             } else if (itemId == R.id.nav_settings) {
                 startActivity(new Intent(getApplicationContext(), SettingsActivity.class));
-                overridePendingTransition(0, 0);
-                finish();
-                return true;
+                overridePendingTransition(0, 0); finish(); return true;
             }
             return itemId == R.id.nav_home;
         });
     }
 
-    // --- NEW: THE MANUAL ADD DIALOG ---
+    // --- DIALOGS ---
+
     private void showManualAddDialog() {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 40, 50, 10);
 
         final EditText titleInput = new EditText(this);
-        titleInput.setHint("Title (e.g., Groceries)");
+        titleInput.setHint("Transaction Name (e.g., Lunch)");
         layout.addView(titleInput);
 
         final EditText amountInput = new EditText(this);
-        amountInput.setHint("Amount (e.g., 25.50)");
+        amountInput.setHint("Amount (e.g., 15.50)");
         amountInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
         layout.addView(amountInput);
 
-        new androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Add Manual Transaction")
+        final Spinner categorySpinner = new Spinner(this);
+        String[] categories = {"Food & Beverages", "Transport", "Entertainment", "Others"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, categories);
+        categorySpinner.setAdapter(adapter);
+        layout.addView(categorySpinner);
+
+        new AlertDialog.Builder(this)
+                .setTitle("Add Transaction")
                 .setView(layout)
                 .setPositiveButton("Save", (dialog, which) -> {
-                    String titleStr = titleInput.getText().toString().trim();
+                    String title = titleInput.getText().toString().trim();
                     String amountStr = amountInput.getText().toString().trim();
 
-                    if (!titleStr.isEmpty() && !amountStr.isEmpty()) {
+                    if (!title.isEmpty() && !amountStr.isEmpty()) {
                         double amount = Double.parseDouble(amountStr);
-                        long currentTimestamp = System.currentTimeMillis();
+                        String category = categorySpinner.getSelectedItem().toString();
+                        long timestamp = System.currentTimeMillis();
 
-                        // Default manual entries to "Uncategorized" category
-                        Transaction newTransaction = new Transaction(amount, titleStr, "Uncategorized", currentTimestamp);
+                        Transaction newTransaction = new Transaction(amount, title, category, timestamp);
                         transactionViewModel.insert(newTransaction);
+
+                        // Trigger budget checks
+                        BudgetAlertManager.checkBudgets(getApplicationContext(), FinanceDatabase.getDatabase(getApplicationContext()).transactionDao());
                     }
                 })
                 .setNegativeButton("Cancel", (dialog, which) -> dialog.cancel())
                 .show();
     }
 
-    // --- UPDATED: THE EDIT ALL FIELDS DIALOG ---
+    private void showSeeAllDialog(List<Transaction> allTransactions) {
+        RecyclerView popupRecyclerView = new RecyclerView(this);
+        popupRecyclerView.setLayoutManager(new LinearLayoutManager(this));
+        popupRecyclerView.setPadding(24, 24, 24, 24);
+
+        TransactionAdapter popupAdapter = new TransactionAdapter();
+        popupAdapter.submitList(allTransactions);
+        popupRecyclerView.setAdapter(popupAdapter);
+
+        // Allows edit/delete from inside the See All popup
+        popupAdapter.setOnItemClickListener(new TransactionAdapter.OnItemClickListener() {
+            @Override
+            public void onEditClick(Transaction transaction) { showEditTransactionDialog(transaction); }
+            @Override
+            public void onDeleteClick(Transaction transaction) { transactionViewModel.delete(transaction); }
+        });
+
+        new AlertDialog.Builder(this)
+                .setTitle("All Transactions")
+                .setView(popupRecyclerView)
+                .setPositiveButton("Close", (dialog, which) -> dialog.dismiss())
+                .show();
+    }
+
     private void showEditTransactionDialog(Transaction transaction) {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -146,32 +260,57 @@ public class DashboardActivity extends AppCompatActivity {
 
         final EditText titleInput = new EditText(this);
         titleInput.setText(transaction.getText());
-        titleInput.setHint("Title");
         layout.addView(titleInput);
 
         final EditText amountInput = new EditText(this);
         amountInput.setText(String.valueOf(transaction.getAmount()));
-        amountInput.setHint("Amount");
         amountInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
         layout.addView(amountInput);
 
-        final EditText categoryInput = new EditText(this);
-        categoryInput.setText(transaction.getCategory());
-        categoryInput.setHint("Category");
-        layout.addView(categoryInput);
+        final EditText merchantInput = new EditText(this);
+        merchantInput.setText(transaction.getMerchantName());
+        merchantInput.setHint("Merchant Name");
+        layout.addView(merchantInput);
 
-        new androidx.appcompat.app.AlertDialog.Builder(DashboardActivity.this)
+        final EditText paymentInput = new EditText(this);
+        paymentInput.setText(transaction.getPaymentMethod());
+        paymentInput.setHint("Payment Method");
+        layout.addView(paymentInput);
+
+        // Spinner for Category Edit
+        final Spinner categorySpinner = new Spinner(this);
+        String[] categories = {"Food & Beverages", "Transport", "Entertainment", "Others"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, categories);
+        categorySpinner.setAdapter(adapter);
+
+        // Set the spinner to the previously saved category
+        for (int i = 0; i < categories.length; i++) {
+            if (categories[i].equals(transaction.getCategory())) {
+                categorySpinner.setSelection(i);
+                break;
+            }
+        }
+        layout.addView(categorySpinner);
+
+        final EditText notesInput = new EditText(this);
+        notesInput.setText(transaction.getNotes());
+        notesInput.setHint("Notes (Optional)");
+        layout.addView(notesInput);
+
+        new AlertDialog.Builder(this)
                 .setTitle("Edit Transaction")
                 .setView(layout)
                 .setPositiveButton("Update", (dialog, which) -> {
-                    String newTitle = titleInput.getText().toString().trim();
-                    String newAmountStr = amountInput.getText().toString().trim();
-                    String newCategory = categoryInput.getText().toString().trim();
+                    String title = titleInput.getText().toString().trim();
+                    String amountStr = amountInput.getText().toString().trim();
 
-                    if (!newTitle.isEmpty() && !newAmountStr.isEmpty() && !newCategory.isEmpty()) {
-                        transaction.setText(newTitle);
-                        transaction.setAmount(Double.parseDouble(newAmountStr));
-                        transaction.setCategory(newCategory);
+                    if (!title.isEmpty() && !amountStr.isEmpty()) {
+                        transaction.setText(title);
+                        transaction.setAmount(Double.parseDouble(amountStr));
+                        transaction.setMerchantName(merchantInput.getText().toString().trim());
+                        transaction.setPaymentMethod(paymentInput.getText().toString().trim());
+                        transaction.setCategory(categorySpinner.getSelectedItem().toString());
+                        transaction.setNotes(notesInput.getText().toString().trim());
 
                         transactionViewModel.update(transaction);
                     }

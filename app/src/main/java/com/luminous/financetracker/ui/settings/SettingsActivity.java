@@ -3,6 +3,10 @@ package com.luminous.financetracker.ui.settings;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -36,10 +40,21 @@ public class SettingsActivity extends AppCompatActivity {
     private ActivityResultLauncher<Intent> exportCsvLauncher;
     private ActivityResultLauncher<Intent> importCsvLauncher;
 
+    // UI and Delay Logic
+    private ProgressBar progressSync;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    private final Runnable showProgressRunnable = () -> {
+        if (progressSync != null) {
+            progressSync.setVisibility(View.VISIBLE);
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+
+        progressSync = findViewById(R.id.progress_sync);
 
         // 1. Initialize ViewModel and cache the latest list of transactions for exporting
         transactionViewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
@@ -122,75 +137,111 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
+    // --- PROGRESS TOGGLES ---
+    private void startLoadingWithDelay() {
+        // Trigger the spinner to show up only if the task takes longer than 300ms
+        mainHandler.postDelayed(showProgressRunnable, 300);
+    }
+
+    private void stopLoading() {
+        // Cancel the delayed trigger, and hide the spinner if it's already showing
+        mainHandler.removeCallbacks(showProgressRunnable);
+        if (progressSync != null) {
+            progressSync.setVisibility(View.GONE);
+        }
+    }
+
     // --- CSV WRITE LOGIC ---
     private void writeCsvToUri(Uri uri) {
-        try {
-            OutputStream os = getContentResolver().openOutputStream(uri);
-            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os));
+        startLoadingWithDelay();
 
-            // Write CSV Header
-            writer.write("Title,Amount,Category,Timestamp\n");
+        // Run the heavy lifting on a background thread so the UI doesn't freeze
+        new Thread(() -> {
+            try {
+                OutputStream os = getContentResolver().openOutputStream(uri);
+                BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os));
 
-            // Write Data Rows
-            for (Transaction t : currentTransactions) {
-                // Strip commas from text to prevent breaking the CSV format
-                String safeTitle = (t.getText() != null) ? t.getText().replace(",", "") : "";
-                String safeCategory = (t.getCategory() != null) ? t.getCategory().replace(",", "") : "";
+                // Write CSV Header
+                writer.write("Title,Amount,Category,Timestamp\n");
 
-                writer.write(safeTitle + "," + t.getAmount() + "," + safeCategory + "," + t.getTimestamp() + "\n");
+                // Write Data Rows
+                for (Transaction t : currentTransactions) {
+                    String safeTitle = (t.getText() != null) ? t.getText().replace(",", "") : "";
+                    String safeCategory = (t.getCategory() != null) ? t.getCategory().replace(",", "") : "";
+                    writer.write(safeTitle + "," + t.getAmount() + "," + safeCategory + "," + t.getTimestamp() + "\n");
+                }
+
+                writer.flush();
+                writer.close();
+
+                // Post success UI update back to main thread
+                mainHandler.post(() -> {
+                    stopLoading();
+                    Toast.makeText(SettingsActivity.this, "Exported successfully!", Toast.LENGTH_SHORT).show();
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                // Post failure UI update back to main thread
+                mainHandler.post(() -> {
+                    stopLoading();
+                    Toast.makeText(SettingsActivity.this, "Export failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
             }
-
-            writer.flush();
-            writer.close();
-            Toast.makeText(this, "Exported successfully!", Toast.LENGTH_SHORT).show();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Export failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
+        }).start();
     }
 
     // --- CSV READ LOGIC ---
     private void readCsvFromUri(Uri uri) {
-        try {
-            InputStream is = getContentResolver().openInputStream(uri);
-            BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+        startLoadingWithDelay();
 
-            String line;
-            boolean isFirstLine = true;
-            int importCount = 0;
+        // Run on background thread
+        new Thread(() -> {
+            try {
+                InputStream is = getContentResolver().openInputStream(uri);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 
-            while ((line = reader.readLine()) != null) {
-                // Skip the header row
-                if (isFirstLine) {
-                    isFirstLine = false;
-                    continue;
-                }
+                String line;
+                boolean isFirstLine = true;
+                int importCount = 0;
 
-                String[] tokens = line.split(",");
-                if (tokens.length >= 4) {
-                    try {
-                        String title = tokens[0];
-                        double amount = Double.parseDouble(tokens[1]);
-                        String category = tokens[2];
-                        long timestamp = Long.parseLong(tokens[3]);
+                while ((line = reader.readLine()) != null) {
+                    if (isFirstLine) {
+                        isFirstLine = false;
+                        continue;
+                    }
 
-                        // Recreate the transaction and insert into the database
-                        Transaction t = new Transaction(amount, title, category, timestamp);
-                        transactionViewModel.insert(t);
-                        importCount++;
-                    } catch (NumberFormatException nfe) {
-                        // Skip corrupted rows silently
+                    String[] tokens = line.split(",");
+                    if (tokens.length >= 4) {
+                        try {
+                            String title = tokens[0];
+                            double amount = Double.parseDouble(tokens[1]);
+                            String category = tokens[2];
+                            long timestamp = Long.parseLong(tokens[3]);
+
+                            Transaction t = new Transaction(amount, title, category, timestamp);
+                            transactionViewModel.insert(t);
+                            importCount++;
+                        } catch (NumberFormatException nfe) {
+                            // Skip corrupted rows silently
+                        }
                     }
                 }
+                reader.close();
+
+                final int finalCount = importCount;
+                mainHandler.post(() -> {
+                    stopLoading();
+                    Toast.makeText(SettingsActivity.this, "Imported " + finalCount + " transactions!", Toast.LENGTH_SHORT).show();
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                mainHandler.post(() -> {
+                    stopLoading();
+                    Toast.makeText(SettingsActivity.this, "Import failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                });
             }
-
-            reader.close();
-            Toast.makeText(this, "Imported " + importCount + " transactions!", Toast.LENGTH_SHORT).show();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Import failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
+        }).start();
     }
 }

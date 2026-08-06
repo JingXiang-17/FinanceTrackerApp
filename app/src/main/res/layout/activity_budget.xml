@@ -81,7 +81,6 @@
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Time-Based Budgets (Daily, Weekly, Monthly) -->
-            <!-- Using nestedScrollingEnabled="false" so it scrolls smoothly inside NestedScrollView -->
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rv_time_budgets"
                 android:layout_width="match_parent"
