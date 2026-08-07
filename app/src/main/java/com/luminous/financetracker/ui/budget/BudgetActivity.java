@@ -3,8 +3,10 @@ package com.luminous.financetracker.ui.budget;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -45,9 +47,9 @@ public class BudgetActivity extends AppCompatActivity {
         timeBudgetAdapter.updateLimit(1, sharedPreferences.getFloat("limit_1", 200.0f));
         timeBudgetAdapter.updateLimit(2, sharedPreferences.getFloat("limit_2", 1000.0f));
 
-        // 3. Handle Edit Clicks
+        // 3. Handle Edit Clicks - Wired to the NEW auto-calc dialog
         timeBudgetAdapter.setOnBudgetEditListener((position, title, currentLimit) -> {
-            showEditLimitDialog(position, title, currentLimit);
+            showEditBudgetDialog(position, title, currentLimit);
         });
 
         // 4. Initialize ViewModel and observe LiveData
@@ -97,8 +99,8 @@ public class BudgetActivity extends AppCompatActivity {
         });
     }
 
-    // --- Helper Method to Edit Limits ---
-    private void showEditLimitDialog(int position, String title, double currentLimit) {
+    // --- Helper Method to Edit Limits (Now with Auto-Calc Logic) ---
+    private void showEditBudgetDialog(int position, String title, double currentLimit) {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 40, 50, 10);
@@ -108,20 +110,58 @@ public class BudgetActivity extends AppCompatActivity {
         input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
         layout.addView(input);
 
-        new androidx.appcompat.app.AlertDialog.Builder(this)
+        // Auto-Calculate Checkbox
+        final CheckBox autoCalcCheckBox = new CheckBox(this);
+        autoCalcCheckBox.setText("Auto-calculate related budgets");
+
+        // Remember the user's preference for this checkbox (default to true)
+        boolean isAutoCalc = sharedPreferences.getBoolean("auto_calc_budgets", true);
+        autoCalcCheckBox.setChecked(isAutoCalc);
+        layout.addView(autoCalcCheckBox);
+
+        new AlertDialog.Builder(this) // Uses androidx.appcompat.app.AlertDialog
                 .setTitle("Edit " + title)
-                .setMessage("Enter your new target budget limit:")
                 .setView(layout)
                 .setPositiveButton("Save", (dialog, which) -> {
-                    String limitStr = input.getText().toString().trim();
-                    if (!limitStr.isEmpty()) {
-                        float newLimit = Float.parseFloat(limitStr);
+                    String valueStr = input.getText().toString().trim();
+                    if (!valueStr.isEmpty()) {
+                        float newLimit = Float.parseFloat(valueStr);
+                        boolean autoCalc = autoCalcCheckBox.isChecked();
 
-                        // Save to SharedPreferences so it survives app restarts
-                        sharedPreferences.edit().putFloat("limit_" + position, newLimit).apply();
+                        SharedPreferences.Editor editor = sharedPreferences.edit();
 
-                        // Instantly update the adapter so the blue bar visually recalculates
-                        timeBudgetAdapter.updateLimit(position, newLimit);
+                        // Save the checkbox state so the app remembers their choice next time
+                        editor.putBoolean("auto_calc_budgets", autoCalc);
+
+                        if (autoCalc) {
+                            // Calculate based on which budget they clicked
+                            if (position == 0) {
+                                // Edited Daily
+                                editor.putFloat("limit_0", newLimit);
+                                editor.putFloat("limit_1", newLimit * 7);
+                                editor.putFloat("limit_2", newLimit * 28);
+                            } else if (position == 1) {
+                                // Edited Weekly
+                                editor.putFloat("limit_0", newLimit / 7);
+                                editor.putFloat("limit_1", newLimit);
+                                editor.putFloat("limit_2", newLimit * 4);
+                            } else if (position == 2) {
+                                // Edited Monthly
+                                editor.putFloat("limit_0", newLimit / 28);
+                                editor.putFloat("limit_1", newLimit / 4);
+                                editor.putFloat("limit_2", newLimit);
+                            }
+                        } else {
+                            // Auto-calc is OFF: Only update the specific budget they edited
+                            editor.putFloat("limit_" + position, newLimit);
+                        }
+
+                        editor.apply();
+
+                        // Refresh the UI instantly for all three budgets
+                        timeBudgetAdapter.updateLimit(0, sharedPreferences.getFloat("limit_0", 30.0f));
+                        timeBudgetAdapter.updateLimit(1, sharedPreferences.getFloat("limit_1", 200.0f));
+                        timeBudgetAdapter.updateLimit(2, sharedPreferences.getFloat("limit_2", 1000.0f));
                     }
                 })
                 .setNegativeButton("Cancel", (dialog, which) -> dialog.cancel())

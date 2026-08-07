@@ -6,23 +6,22 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 
-// Import your files here (Adjust package names if yours are slightly different)
 import com.luminous.financetracker.data.entity.Budget;
 import com.luminous.financetracker.data.entity.Transaction;
 import com.luminous.financetracker.data.dao.TransactionDao;
+import com.luminous.financetracker.data.dao.BudgetDao;
 import com.luminous.financetracker.util.Constants;
 import com.luminous.financetracker.util.DateConverter;
 
-// 1. Define the entities (tables) in your database
-@Database(entities = {Transaction.class, Budget.class}, version = 2, exportSchema = false)
-// 2. THIS WIRES UP YOUR DATE CONVERTER!
+// 1. Updated version to 3 for the new Transaction fields
+@Database(entities = {Transaction.class, Budget.class}, version = 3, exportSchema = false)
 @TypeConverters({DateConverter.class})
 public abstract class FinanceDatabase extends RoomDatabase {
 
-    // Link to your DAO (Data Access Object)
+    // 2. Link BOTH DAOs here
     public abstract TransactionDao transactionDao();
+    public abstract BudgetDao budgetDao();
 
-    // Singleton instance to prevent multiple instances of the database opening at the same time
     private static volatile FinanceDatabase INSTANCE;
 
     public static FinanceDatabase getDatabase(final Context context) {
@@ -31,7 +30,7 @@ public abstract class FinanceDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     FinanceDatabase.class,
-                                    Constants.DATABASE_NAME) // 3. THIS WIRES UP YOUR CONSTANTS!
+                                    Constants.DATABASE_NAME)
                             .fallbackToDestructiveMigration()
                             .build();
                 }

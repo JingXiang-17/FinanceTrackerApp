@@ -3,10 +3,10 @@ package com.luminous.financetracker.service;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 
-import com.luminous.financetracker.data.database.FinanceDatabase; // Added Import
+import com.luminous.financetracker.data.database.FinanceDatabase;
 import com.luminous.financetracker.data.entity.Transaction;
 import com.luminous.financetracker.repository.TransactionRepository;
-import com.luminous.financetracker.util.BudgetAlertManager; // Added Import
+import com.luminous.financetracker.util.BudgetAlertManager;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -21,6 +21,7 @@ public class NotificationListener extends NotificationListenerService {
     public void onNotificationPosted(StatusBarNotification sbn) {
         // 1 : Get and filter the package names of a notification
         String packageName = sbn.getPackageName();
+
         // Define the financial apps that matters
         List<String> targetApps = Arrays.asList(
                 //ewallets / online shopping
@@ -41,13 +42,15 @@ public class NotificationListener extends NotificationListenerService {
                 "com.cimbocto", //CIMB Bank
                 "com.ocbc.mobilemy" //OCBC Bank
         );
+
         // If the notification is NOT from your target list, drop it immediately
         if (packageName == null || !targetApps.contains(packageName)) {
             return;
         }
 
-        // 2 : Get and filter the notification text
+        // 2 : Get and filter the notification text and title
         String text = sbn.getNotification().extras.getString(android.app.Notification.EXTRA_TEXT);
+        String title = sbn.getNotification().extras.getString(android.app.Notification.EXTRA_TITLE); // Get Title for Merchant
 
         // If it's a silent notification with no text, drop it
         if (text == null || text.isEmpty()) {
@@ -59,10 +62,12 @@ public class NotificationListener extends NotificationListenerService {
         if (lowercase.contains("transferred to you") || lowercase.contains("received")) { //mainly to address transferred keyword from tng notification
             return;
         }
+
         boolean isPromotion = (lowercase.contains("to get") || (lowercase.contains("to win")) || lowercase.contains("min spend") || lowercase.contains("min spent") || lowercase.contains("minimum spend") ||
                 lowercase.contains ("minimum spent") || lowercase.contains ("up to") || lowercase.contains ("win rm") || lowercase.contains ("terms and conditions") || lowercase.contains ("t&c") || lowercase.contains ("terms & conditions") ||
                 lowercase.contains ("t & c") || lowercase.contains ("promo") || lowercase.contains ("expiring") || lowercase.contains ("expire") || lowercase.contains ("cashback") ||
                 lowercase.contains ("voucher") || lowercase.contains ("survey"));
+
         boolean isExpense = (lowercase.contains("spend") || lowercase.contains("paid") || lowercase.contains("deducted") || lowercase.contains("payment") || lowercase.contains("transferred") || lowercase.contains("spent"));
 
         if (isPromotion) {
@@ -75,6 +80,7 @@ public class NotificationListener extends NotificationListenerService {
             // not expense or income -- promotion or spam. drop this.
             return;
         }
+
         Pattern pattern = Pattern.compile("rm\\s?(\\d+\\.\\d{2})", Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(text);
 
@@ -84,11 +90,22 @@ public class NotificationListener extends NotificationListenerService {
                 double amount = Double.parseDouble(amountString);
                 long currentTimestamp = System.currentTimeMillis();
 
-                // --- CATEGORY MATCHING ENGINE ---
+                // --- DATA EXTRACTION ENGINE ---
                 String category = determineCategory(lowercase);
+                String paymentMethod = determinePaymentMethod(packageName); // The "From"
+                String merchantName = determineMerchant(lowercase, title); // The "To"
 
-                // 4: Construct the Transaction entity with the new category parameter
-                Transaction newTransaction = new Transaction(amount, text, category, currentTimestamp);
+                // 4: Construct the Transaction entity using the NEW 7-parameter constructor
+                // Format: amount, text, category, timestamp, paymentMethod, merchantName, notes
+                Transaction newTransaction = new Transaction(
+                        amount,
+                        text,
+                        category,
+                        currentTimestamp,
+                        paymentMethod,
+                        merchantName,
+                        "" // Leave notes empty for auto-captured transactions
+                );
 
                 // 5: Dispatch to the repository to save asynchronously
                 TransactionRepository repository = new TransactionRepository(getApplication());
@@ -109,7 +126,58 @@ public class NotificationListener extends NotificationListenerService {
 
     }
 
-    // --- HELPER METHOD ---
+    // --- HELPER METHODS ---
+
+    private String determinePaymentMethod(String packageName) {
+        switch (packageName) {
+            case "my.com.tngdigital.ewallet": return "Touch 'n Go eWallet";
+            case "com.shopee.my": return "ShopeePay";
+            case "com.lazada.android": return "Lazada Wallet";
+            case "com.grabtaxi.passenger": return "GrabPay";
+            case "com.einnovation.temu": return "Temu";
+            case "com.tencent.mm": return "WeChat Pay";
+            case "com.eg.android.AlipayGphone": return "Alipay";
+            case "my.com.myboost": return "Boost";
+            case "com.hongleongconnect.mobileconnect": return "Hong Leong Bank";
+            case "com.rhbgroup.rhbmobilebanking": return "RHB Bank";
+            case "com.irakyatmob.bkrm": return "Bank Rakyat";
+            case "com.maybank2u.life": return "MAE";
+            case "my.rytbank.app": return "Ryt Bank";
+            case "com.cimbocto": return "CIMB Bank";
+            case "com.ocbc.mobilemy": return "OCBC Bank";
+            default: return "Unknown App";
+        }
+    }
+
+    private String determineMerchant(String lowercaseText, String notificationTitle) {
+        // 1. Try to find a known merchant keyword in the text first
+        if (lowercaseText.contains("kfc")) return "KFC";
+        if (lowercaseText.contains("luck bros kopi")) return "Luck Bros Kopi";
+        if (lowercaseText.contains("sushi village")) return "Sushi Village";
+        if (lowercaseText.contains("uni ramen")) return "Uni Ramen";
+        if (lowercaseText.contains("taiwan tea house")) return "Taiwan Tea House";
+        if (lowercaseText.contains("emart24")) return "emart24";
+        if (lowercaseText.contains("luckin coffee")) return "Luckin Coffee";
+        if (lowercaseText.contains("gigi coffee")) return "Gigi Coffee";
+        if (lowercaseText.contains("koppiku")) return "Koppiku";
+        if (lowercaseText.contains("tealive")) return "Tealive";
+        if (lowercaseText.contains("zus coffee")) return "ZUS Coffee";
+        if (lowercaseText.contains("water bar")) return "Water Bar";
+        if (lowercaseText.contains("golden screen cinemas") || lowercaseText.contains("gsc")) return "Golden Screen Cinemas";
+        if (lowercaseText.contains("legoland")) return "Legoland";
+        if (lowercaseText.contains("ktm")) return "KTM";
+        if (lowercaseText.contains("airasia")) return "AirAsia";
+        if (lowercaseText.contains("malaysia airlines")) return "Malaysia Airlines";
+
+        // 2. Fallback: Often, the title of the notification IS the merchant name (e.g. "Payment to Starbucks")
+        if (notificationTitle != null && !notificationTitle.isEmpty()) {
+            return notificationTitle;
+        }
+
+        // 3. Absolute fallback
+        return "Unknown Merchant";
+    }
+
     private String determineCategory(String lowercaseText) {
         Map<String, String> keywordMap = new HashMap<>();
 
@@ -133,7 +201,7 @@ public class NotificationListener extends NotificationListenerService {
 
         // Transport
         keywordMap.put("ktm", "Transport");
-        keywordMap.put("airasia", "Transport"); // Added a standard airline catch just in case
+        keywordMap.put("airasia", "Transport");
         keywordMap.put("malaysia airlines", "Transport");
 
         // Scan the notification for matches
@@ -143,7 +211,7 @@ public class NotificationListener extends NotificationListenerService {
             }
         }
 
-        // Fallback for everything else (Matches your new dropdown)
+        // Fallback for everything else
         return "Others";
     }
 }

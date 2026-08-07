@@ -161,14 +161,20 @@ public class SettingsActivity extends AppCompatActivity {
                 OutputStream os = getContentResolver().openOutputStream(uri);
                 BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(os));
 
-                // Write CSV Header
-                writer.write("Title,Amount,Category,Timestamp\n");
+                // Write full CSV Header with all 7 fields
+                writer.write("Title,Amount,Category,Timestamp,Notes,MerchantName,PaymentMethod\n");
 
                 // Write Data Rows
                 for (Transaction t : currentTransactions) {
+                    // Strip commas from text to prevent breaking the CSV format
                     String safeTitle = (t.getText() != null) ? t.getText().replace(",", "") : "";
                     String safeCategory = (t.getCategory() != null) ? t.getCategory().replace(",", "") : "";
-                    writer.write(safeTitle + "," + t.getAmount() + "," + safeCategory + "," + t.getTimestamp() + "\n");
+                    String safeNotes = (t.getNotes() != null) ? t.getNotes().replace(",", "") : "";
+                    String safeMerchant = (t.getMerchantName() != null) ? t.getMerchantName().replace(",", "") : "";
+                    String safePayment = (t.getPaymentMethod() != null) ? t.getPaymentMethod().replace(",", "") : "";
+
+                    writer.write(safeTitle + "," + t.getAmount() + "," + safeCategory + "," +
+                            t.getTimestamp() + "," + safeNotes + "," + safeMerchant + "," + safePayment + "\n");
                 }
 
                 writer.flush();
@@ -206,12 +212,14 @@ public class SettingsActivity extends AppCompatActivity {
                 int importCount = 0;
 
                 while ((line = reader.readLine()) != null) {
+                    // Skip the header row
                     if (isFirstLine) {
                         isFirstLine = false;
                         continue;
                     }
 
-                    String[] tokens = line.split(",");
+                    // Split by comma, passing -1 to keep empty trailing fields
+                    String[] tokens = line.split(",", -1);
                     if (tokens.length >= 4) {
                         try {
                             String title = tokens[0];
@@ -219,7 +227,18 @@ public class SettingsActivity extends AppCompatActivity {
                             String category = tokens[2];
                             long timestamp = Long.parseLong(tokens[3]);
 
+                            // Safely grab the optional fields (allows backwards compatibility with 4-column CSVs)
+                            String notes = (tokens.length >= 5) ? tokens[4] : "";
+                            String merchant = (tokens.length >= 6) ? tokens[5] : "";
+                            String payment = (tokens.length >= 7) ? tokens[6] : "";
+
+                            // Recreate the transaction and set the extra fields
                             Transaction t = new Transaction(amount, title, category, timestamp);
+                            t.setNotes(notes);
+                            t.setMerchantName(merchant);
+                            t.setPaymentMethod(payment);
+
+                            // Insert into the database
                             transactionViewModel.insert(t);
                             importCount++;
                         } catch (NumberFormatException nfe) {

@@ -3,7 +3,7 @@ package com.luminous.financetracker.ui.adapter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView; // <-- Added this import
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -14,6 +14,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.luminous.financetracker.R;
 import com.luminous.financetracker.data.entity.Transaction;
 import com.luminous.financetracker.util.TimeUtils;
+
+import java.util.Objects;
 
 public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdapter.TransactionHolder> {
 
@@ -31,9 +33,14 @@ public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdap
 
         @Override
         public boolean areContentsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
-            return oldItem.getText().equals(newItem.getText()) &&
-                    oldItem.getAmount() == newItem.getAmount() &&
-                    oldItem.isExpanded() == newItem.isExpanded();
+            // Include all relevant fields to ensure smooth UI updates when edited
+            return oldItem.getAmount() == newItem.getAmount() &&
+                    oldItem.isExpanded() == newItem.isExpanded() &&
+                    Objects.equals(oldItem.getText(), newItem.getText()) &&
+                    Objects.equals(oldItem.getCategory(), newItem.getCategory()) &&
+                    Objects.equals(oldItem.getPaymentMethod(), newItem.getPaymentMethod()) &&
+                    Objects.equals(oldItem.getMerchantName(), newItem.getMerchantName()) &&
+                    Objects.equals(oldItem.getNotes(), newItem.getNotes());
         }
     };
 
@@ -51,13 +58,13 @@ public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdap
         holder.tvTitle.setText(currentTransaction.getText());
         holder.tvAmount.setText(String.format("-RM %.2f", currentTransaction.getAmount()));
 
-        // Map the expanded details
+        // Clarify labels for the expanded view based on our prior discussion
         holder.tvCategory.setText("Category: " + currentTransaction.getCategory());
-        holder.tvMerchant.setText("Merchant: " + currentTransaction.getMerchantName());
-        holder.tvPayment.setText("Paid with: " + currentTransaction.getPaymentMethod());
+        holder.tvPayment.setText("From: " + currentTransaction.getPaymentMethod());
+        holder.tvMerchant.setText("To: " + currentTransaction.getMerchantName());
         holder.tvTime.setText("Time: " + TimeUtils.formatTimestamp(currentTransaction.getTimestamp()));
 
-        if (currentTransaction.getNotes() != null && !currentTransaction.getNotes().isEmpty()) {
+        if (currentTransaction.getNotes() != null && !currentTransaction.getNotes().trim().isEmpty()) {
             holder.tvNotes.setVisibility(View.VISIBLE);
             holder.tvNotes.setText("Notes: " + currentTransaction.getNotes());
         } else {
@@ -86,10 +93,7 @@ public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdap
     class TransactionHolder extends RecyclerView.ViewHolder {
         private TextView tvTitle, tvAmount;
         private TextView tvCategory, tvMerchant, tvPayment, tvTime, tvNotes;
-
-        // FIXED: Changed from TextView to ImageView to match your XML
         private ImageView btnEdit, btnDelete;
-
         private View layoutHeader;
         private LinearLayout layoutExpandedDetails;
 

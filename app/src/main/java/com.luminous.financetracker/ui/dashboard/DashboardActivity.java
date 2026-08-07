@@ -3,6 +3,7 @@ package com.luminous.financetracker.ui.dashboard;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.LinearLayout;
@@ -12,6 +13,7 @@ import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -126,8 +128,8 @@ public class DashboardActivity extends AppCompatActivity {
                 tvEmptyTransactions.setVisibility(View.VISIBLE);
                 rvTransactions.setVisibility(View.GONE);
 
-                // Feed hardcoded 0 values to the category adapter so they appear greyed out
-                Map<String, Double> emptyCategories = new HashMap<>();
+                // --- CHANGED: Now using LinkedHashMap ---
+                Map<String, Double> emptyCategories = new java.util.LinkedHashMap<>();
                 emptyCategories.put("Food & Beverages", 0.0);
                 emptyCategories.put("Transport", 0.0);
                 emptyCategories.put("Entertainment", 0.0);
@@ -144,8 +146,13 @@ public class DashboardActivity extends AppCompatActivity {
 
             transactionAdapter.submitList(transactions); // Send to main list
 
-            // Aggregate Category Data for the current month
-            Map<String, Double> categoryTotals = new HashMap<>();
+            // --- CHANGED: Pre-fill with LinkedHashMap so 0.0 categories don't disappear ---
+            Map<String, Double> categoryTotals = new java.util.LinkedHashMap<>();
+            categoryTotals.put("Food & Beverages", 0.0);
+            categoryTotals.put("Transport", 0.0);
+            categoryTotals.put("Entertainment", 0.0);
+            categoryTotals.put("Others", 0.0);
+
             long startOfMonth = TimeUtils.getStartOfMonth();
 
             for (Transaction t : transactions) {
@@ -182,6 +189,26 @@ public class DashboardActivity extends AppCompatActivity {
             }
             return itemId == R.id.nav_home;
         });
+
+        // 10. Check Notification Permissions
+        promptForNotificationAccess();
+    }
+
+    private boolean isNotificationServiceEnabled() {
+        return NotificationManagerCompat.getEnabledListenerPackages(this).contains(getPackageName());
+    }
+
+    private void promptForNotificationAccess() {
+        if (!isNotificationServiceEnabled()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("Enable Auto-Tracking")
+                    .setMessage("To automatically track your expenses from bank and e-wallet notifications, please grant Notification Access to the app.")
+                    .setPositiveButton("Go to Settings", (dialog, which) -> {
+                        startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS));
+                    })
+                    .setNegativeButton("Not Now", (dialog, which) -> dialog.dismiss())
+                    .show();
+        }
     }
 
     // --- DIALOGS ---
@@ -200,11 +227,23 @@ public class DashboardActivity extends AppCompatActivity {
         amountInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
         layout.addView(amountInput);
 
+        final EditText paymentInput = new EditText(this);
+        paymentInput.setHint("From (Payment Method: TnG, Bank, etc.)");
+        layout.addView(paymentInput);
+
+        final EditText merchantInput = new EditText(this);
+        merchantInput.setHint("To (Merchant Name)");
+        layout.addView(merchantInput);
+
         final Spinner categorySpinner = new Spinner(this);
         String[] categories = {"Food & Beverages", "Transport", "Entertainment", "Others"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, categories);
         categorySpinner.setAdapter(adapter);
         layout.addView(categorySpinner);
+
+        final EditText notesInput = new EditText(this);
+        notesInput.setHint("Notes (Optional)");
+        layout.addView(notesInput);
 
         new AlertDialog.Builder(this)
                 .setTitle("Add Transaction")
@@ -219,9 +258,13 @@ public class DashboardActivity extends AppCompatActivity {
                         long timestamp = System.currentTimeMillis();
 
                         Transaction newTransaction = new Transaction(amount, title, category, timestamp);
+
+                        newTransaction.setPaymentMethod(paymentInput.getText().toString().trim());
+                        newTransaction.setMerchantName(merchantInput.getText().toString().trim());
+                        newTransaction.setNotes(notesInput.getText().toString().trim());
+
                         transactionViewModel.insert(newTransaction);
 
-                        // Trigger budget checks
                         BudgetAlertManager.checkBudgets(getApplicationContext(), FinanceDatabase.getDatabase(getApplicationContext()).transactionDao());
                     }
                 })
@@ -238,7 +281,6 @@ public class DashboardActivity extends AppCompatActivity {
         popupAdapter.submitList(allTransactions);
         popupRecyclerView.setAdapter(popupAdapter);
 
-        // Allows edit/delete from inside the See All popup
         popupAdapter.setOnItemClickListener(new TransactionAdapter.OnItemClickListener() {
             @Override
             public void onEditClick(Transaction transaction) { showEditTransactionDialog(transaction); }
@@ -267,23 +309,21 @@ public class DashboardActivity extends AppCompatActivity {
         amountInput.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
         layout.addView(amountInput);
 
-        final EditText merchantInput = new EditText(this);
-        merchantInput.setText(transaction.getMerchantName());
-        merchantInput.setHint("Merchant Name");
-        layout.addView(merchantInput);
-
         final EditText paymentInput = new EditText(this);
         paymentInput.setText(transaction.getPaymentMethod());
-        paymentInput.setHint("Payment Method");
+        paymentInput.setHint("From (Payment Method: TnG, Bank, etc.)");
         layout.addView(paymentInput);
 
-        // Spinner for Category Edit
+        final EditText merchantInput = new EditText(this);
+        merchantInput.setText(transaction.getMerchantName());
+        merchantInput.setHint("To (Merchant Name)");
+        layout.addView(merchantInput);
+
         final Spinner categorySpinner = new Spinner(this);
         String[] categories = {"Food & Beverages", "Transport", "Entertainment", "Others"};
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item, categories);
         categorySpinner.setAdapter(adapter);
 
-        // Set the spinner to the previously saved category
         for (int i = 0; i < categories.length; i++) {
             if (categories[i].equals(transaction.getCategory())) {
                 categorySpinner.setSelection(i);

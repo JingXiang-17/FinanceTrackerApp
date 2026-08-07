@@ -61,7 +61,7 @@ public class BudgetAlertManager {
             prefs.edit().putBoolean(key100, true).apply();
 
         } else if (percentage >= 80 && percentage < 100 && !prefs.getBoolean(key80, false)) {
-            String message = String.format("You have reached %.0f%% of your %s budget.", percentage, period);
+            String message = String.format("You have reached %.2f%% of your %s budget.", percentage, period);
             sendNotification(context, period + " Budget Warning \uD83D\uDEA8", message, notificationId);
 
             // Mark as notified

@@ -2,7 +2,7 @@ package com.luminous.financetracker.util;
 
 public class Constants {
     // Database Name
-    public static final String DATABASE_NAME = "finance_tracker_db";
+    public static final String DATABASE_NAME = "finance_tracker";
 
     // Intent Actions or Broadcast Keys (if passing data between your service and UI)
     public static final String ACTION_NEW_TRANSACTION = "com.luminous.financetracker.NEW_TRANSACTION";
