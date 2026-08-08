@@ -124,13 +124,19 @@ public class StatisticsActivity extends AppCompatActivity {
             int itemId = item.getItemId();
             if (itemId == R.id.nav_home) {
                 startActivity(new Intent(getApplicationContext(), DashboardActivity.class));
-                overridePendingTransition(0, 0); finish(); return true;
+                overridePendingTransition(0, 0);
+                finish();
+                return true;
             } else if (itemId == R.id.nav_budget) {
                 startActivity(new Intent(getApplicationContext(), BudgetActivity.class));
-                overridePendingTransition(0, 0); finish(); return true;
+                overridePendingTransition(0, 0);
+                finish();
+                return true;
             } else if (itemId == R.id.nav_settings) {
                 startActivity(new Intent(getApplicationContext(), SettingsActivity.class));
-                overridePendingTransition(0, 0); finish(); return true;
+                overridePendingTransition(0, 0);
+                finish();
+                return true;
             }
             return itemId == R.id.nav_stats;
         });
@@ -262,7 +268,8 @@ public class StatisticsActivity extends AppCompatActivity {
         String richText;
 
         if (isCustomDateRange) {
-            // Simplified insight for custom ranges (budget comparisons don't make sense here)
+            // Simplified insight for custom ranges (budget comparisons don't make sense
+            // here)
             richText = "During this period, your biggest expense was <b>" + topCategory +
                     "</b>, making up <b>" + percentage + "%</b> of your spending.<br><br>" +
                     "You spent a total of <b>RM " + String.format("%.2f", totalSpending) + "</b>.";
@@ -283,9 +290,12 @@ public class StatisticsActivity extends AppCompatActivity {
             String dayAction = dailyDiff >= 0 ? "less than" : "<b><font color='#D34B56'>MORE</font></b> than";
             String dayFormatted = String.format("RM %.2f", Math.abs(dailyDiff));
 
-            richText = "Your biggest expense this month was <b>" + topCategory + "</b>, making up <b>" + percentage + "%</b> of your total spending.<br><br>" +
-                    "Today, you spent <font color='" + dayColor + "'><b>" + dayFormatted + "</b></font> " + dayAction + " your daily budget.<br><br>" +
-                    "For this month, you are <font color='" + monthColor + "'><b>" + monthFormatted + "</b></font> " + monthAction + " your monthly budget.";
+            richText = "Your biggest expense this month was <b>" + topCategory + "</b>, making up <b>" + percentage
+                    + "%</b> of your total spending.<br><br>" +
+                    "Today, you spent <font color='" + dayColor + "'><b>" + dayFormatted + "</b></font> " + dayAction
+                    + " your daily budget.<br><br>" +
+                    "For this month, you are <font color='" + monthColor + "'><b>" + monthFormatted + "</b></font> "
+                    + monthAction + " your monthly budget.";
         }
 
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {

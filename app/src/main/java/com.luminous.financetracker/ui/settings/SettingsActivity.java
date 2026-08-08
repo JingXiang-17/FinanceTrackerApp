@@ -56,7 +56,8 @@ public class SettingsActivity extends AppCompatActivity {
 
         progressSync = findViewById(R.id.progress_sync);
 
-        // 1. Initialize ViewModel and cache the latest list of transactions for exporting
+        // 1. Initialize ViewModel and cache the latest list of transactions for
+        // exporting
         transactionViewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
         transactionViewModel.getAllTransactions().observe(this, transactions -> {
             if (transactions != null) {
@@ -72,8 +73,7 @@ public class SettingsActivity extends AppCompatActivity {
                         Uri uri = result.getData().getData();
                         writeCsvToUri(uri);
                     }
-                }
-        );
+                });
 
         // 3. Setup the Import Launcher (Waits for user to pick a CSV file)
         importCsvLauncher = registerForActivityResult(
@@ -83,8 +83,7 @@ public class SettingsActivity extends AppCompatActivity {
                         Uri uri = result.getData().getData();
                         readCsvFromUri(uri);
                     }
-                }
-        );
+                });
 
         // --- EXPORT BUTTON CLICK ---
         MaterialCardView cardExport = findViewById(R.id.card_export_csv);
@@ -191,7 +190,8 @@ public class SettingsActivity extends AppCompatActivity {
                 // Post failure UI update back to main thread
                 mainHandler.post(() -> {
                     stopLoading();
-                    Toast.makeText(SettingsActivity.this, "Export failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SettingsActivity.this, "Export failed: " + e.getMessage(), Toast.LENGTH_SHORT)
+                            .show();
                 });
             }
         }).start();
@@ -210,6 +210,7 @@ public class SettingsActivity extends AppCompatActivity {
                 String line;
                 boolean isFirstLine = true;
                 int importCount = 0;
+                int duplicateCount = 0; // Keep track of skipped duplicates
 
                 while ((line = reader.readLine()) != null) {
                     // Skip the header row
@@ -227,7 +228,24 @@ public class SettingsActivity extends AppCompatActivity {
                             String category = tokens[2];
                             long timestamp = Long.parseLong(tokens[3]);
 
-                            // Safely grab the optional fields (allows backwards compatibility with 4-column CSVs)
+                            // --- NEW: DUPLICATE CHECKER ---
+                            boolean isDuplicate = false;
+                            for (Transaction existing : currentTransactions) {
+                                // Check if the timeframe (timestamp) and title match
+                                if (existing.getTimestamp() == timestamp && existing.getText().equals(title)) {
+                                    isDuplicate = true;
+                                    break;
+                                }
+                            }
+
+                            if (isDuplicate) {
+                                duplicateCount++;
+                                continue; // Skip this row and move to the next one
+                            }
+                            // ------------------------------
+
+                            // Safely grab the optional fields (allows backwards compatibility with 4-column
+                            // CSVs)
                             String notes = (tokens.length >= 5) ? tokens[4] : "";
                             String merchant = (tokens.length >= 6) ? tokens[5] : "";
                             String payment = (tokens.length >= 7) ? tokens[6] : "";
@@ -241,6 +259,7 @@ public class SettingsActivity extends AppCompatActivity {
                             // Insert into the database
                             transactionViewModel.insert(t);
                             importCount++;
+
                         } catch (NumberFormatException nfe) {
                             // Skip corrupted rows silently
                         }
@@ -248,17 +267,24 @@ public class SettingsActivity extends AppCompatActivity {
                 }
                 reader.close();
 
-                final int finalCount = importCount;
+                final int finalImportCount = importCount;
+                final int finalDuplicateCount = duplicateCount;
+
                 mainHandler.post(() -> {
                     stopLoading();
-                    Toast.makeText(SettingsActivity.this, "Imported " + finalCount + " transactions!", Toast.LENGTH_SHORT).show();
+                    String message = "Imported " + finalImportCount + " new transactions!";
+                    if (finalDuplicateCount > 0) {
+                        message += " (" + finalDuplicateCount + " duplicates skipped)";
+                    }
+                    Toast.makeText(SettingsActivity.this, message, Toast.LENGTH_LONG).show();
                 });
 
             } catch (Exception e) {
                 e.printStackTrace();
                 mainHandler.post(() -> {
                     stopLoading();
-                    Toast.makeText(SettingsActivity.this, "Import failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    Toast.makeText(SettingsActivity.this, "Import failed: " + e.getMessage(), Toast.LENGTH_SHORT)
+                            .show();
                 });
             }
         }).start();

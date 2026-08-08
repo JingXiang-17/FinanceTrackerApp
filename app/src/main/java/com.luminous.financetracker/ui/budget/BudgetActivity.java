@@ -126,6 +126,10 @@ public class BudgetActivity extends AppCompatActivity {
                     String valueStr = input.getText().toString().trim();
                     if (!valueStr.isEmpty()) {
                         float newLimit = Float.parseFloat(valueStr);
+                        if (newLimit <= 0) {
+                            Toast.makeText(this, "Budget must be greater than 0", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
                         boolean autoCalc = autoCalcCheckBox.isChecked();
 
                         SharedPreferences.Editor editor = sharedPreferences.edit();
