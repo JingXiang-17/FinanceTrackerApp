@@ -6,12 +6,14 @@
 
     <!-- Backgrounds -->
     <color name="appBackground">#121212</color>
-    <color name="cardBackground">#1E1E1E</color>
+    <color name="cardBackground">#646464</color>
     <color name="shimmerBackground">#333333</color>
 
     <!-- Text Colors -->
     <color name="textPrimary">#FFFFFF</color>
     <color name="textSecondary">#AAAAAA</color>
+    <color name="textPrimaryCat">#FFFFFF</color>
+    <color name="textSecondaryCat">#DDDDDD</color>
     <color name="textHighlight">#6B8DE3</color>
     <color name="textOnPrimary">#FFFFFF</color>
 </resources>

@@ -182,26 +182,34 @@ public class DashboardActivity extends AppCompatActivity {
     }
 
     // --- CORE FILTERING LOGIC ---
+    // --- CORE FILTERING LOGIC ---
     private void refreshDashboardUI() {
         long startOfMonth = TimeUtils.getStartOfMonthIndex(selectedMonthIndex);
         long endOfMonth = TimeUtils.getEndOfMonthIndex(selectedMonthIndex);
 
         List<Transaction> filteredList = new ArrayList<>();
         double monthTotalSpent = 0.0;
+        double monthBudgetSpent = 0.0; // NEW: Track budget separately
 
         Map<String, Double> categoryTotals = new java.util.LinkedHashMap<>();
         categoryTotals.put("Dining", 0.0);
         categoryTotals.put("Transport", 0.0);
         categoryTotals.put("Entertainment", 0.0);
         categoryTotals.put("Shopping", 0.0);
+        categoryTotals.put("Fixed", 0.0); // NEW: Add Fixed to the map
         categoryTotals.put("Others", 0.0);
 
         // Filter data locally
         for (Transaction t : allCachedTransactions) {
             if (t.getTimestamp() >= startOfMonth && t.getTimestamp() <= endOfMonth) {
                 filteredList.add(t);
-                monthTotalSpent += t.getAmount();
+                monthTotalSpent += t.getAmount(); // Total Balance includes everything
                 categoryTotals.put(t.getCategory(), categoryTotals.getOrDefault(t.getCategory(), 0.0) + t.getAmount());
+
+                // NEW: Exclude Fixed from the budget tracker
+                if (!"Fixed".equalsIgnoreCase(t.getCategory())) {
+                    monthBudgetSpent += t.getAmount();
+                }
             }
         }
 
@@ -225,12 +233,14 @@ public class DashboardActivity extends AppCompatActivity {
         float monthlyLimit = sharedPreferences.getFloat("limit_2", 1000.0f);
         float dailyLimit = sharedPreferences.getFloat("limit_0", 30.0f);
 
+        // NEW: Assign the separated values to the UI
         tvTotalBalance.setText(String.format("RM %.2f", monthTotalSpent));
-        tvBudgetSpent.setText(String.format("RM %.2f", monthTotalSpent));
+        tvBudgetSpent.setText(String.format("RM %.2f", monthBudgetSpent)); // Uses budget logic
         tvBudgetTotal.setText(String.format("/ RM %.2f", monthlyLimit));
         tvBudgetDaily.setText(String.format("Daily budget - RM %.2f", dailyLimit));
 
-        int percent = (monthlyLimit > 0) ? (int) ((monthTotalSpent / monthlyLimit) * 100) : 0;
+        // NEW: Calculate percentage using only the budgetable spending
+        int percent = (monthlyLimit > 0) ? (int) ((monthBudgetSpent / monthlyLimit) * 100) : 0;
         progressBudget.setProgress(percent);
         tvBudgetPercent.setText(percent + "%");
 
@@ -289,7 +299,7 @@ public class DashboardActivity extends AppCompatActivity {
         layout.addView(merchantInput);
 
         final Spinner categorySpinner = new Spinner(this);
-        String[] categories = { "Dining", "Transport", "Entertainment", "Shopping", "Others" };
+        String[] categories = { "Fixed","Dining", "Transport", "Entertainment", "Shopping", "Others" };
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
                 categories);
         categorySpinner.setAdapter(adapter);
@@ -435,7 +445,7 @@ public class DashboardActivity extends AppCompatActivity {
         layout.addView(merchantInput);
 
         final Spinner categorySpinner = new Spinner(this);
-        String[] categories = { "Dining", "Transport", "Entertainment", "Shopping", "Others" };
+        String[] categories = { "Fixed", "Dining", "Transport", "Entertainment", "Shopping", "Others" };
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
                 categories);
         categorySpinner.setAdapter(adapter);

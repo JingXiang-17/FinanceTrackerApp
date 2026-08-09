@@ -150,7 +150,8 @@ public class StatisticsActivity extends AppCompatActivity {
 
         int todayYear = cal.get(Calendar.YEAR);
         int todayDay = cal.get(Calendar.DAY_OF_YEAR);
-        float todayTotalSpending = 0f;
+
+        float todayBudgetableSpending = 0f; // NEW: Today's spending (EXCLUDING "Fixed")
 
         for (Transaction t : allTransactionsCache) {
             long tTime = t.getTimestamp();
@@ -174,9 +175,11 @@ public class StatisticsActivity extends AppCompatActivity {
                 filteredTransactions.add(t);
             }
 
-            // Always track today's spending for the budget calculation
+            // Always track today's budgetable spending for the daily budget calculation
             if (tCal.get(Calendar.YEAR) == todayYear && tCal.get(Calendar.DAY_OF_YEAR) == todayDay) {
-                todayTotalSpending += t.getAmount();
+                if (!"Fixed".equalsIgnoreCase(t.getCategory())) {
+                    todayBudgetableSpending += t.getAmount();
+                }
             }
         }
 
@@ -206,13 +209,24 @@ public class StatisticsActivity extends AppCompatActivity {
 
         // 3. Aggregate Data
         Map<String, Float> categoryTotals = new HashMap<>();
-        float totalSpending = 0f;
+        float totalSpending = 0f;      // EVERYTHING (Pie Chart)
+        float budgetableSpending = 0f; // EXCLUDES "Fixed" (Budget Math)
+        float fixedSpendingTotal = 0f; // "Fixed" ONLY
 
         for (Transaction t : filteredTransactions) {
             String categoryTitle = t.getCategory();
             float amount = (float) t.getAmount();
+
+            // 1. Always add to category totals for the Pie Chart slice
             categoryTotals.put(categoryTitle, categoryTotals.getOrDefault(categoryTitle, 0f) + amount);
             totalSpending += amount;
+
+            // 2. Separate "Fixed" category from budget calculations
+            if ("Fixed".equalsIgnoreCase(categoryTitle)) {
+                fixedSpendingTotal += amount;
+            } else {
+                budgetableSpending += amount;
+            }
         }
 
         // 4. Prepare Chart Entries and Colors
@@ -222,6 +236,7 @@ public class StatisticsActivity extends AppCompatActivity {
         ArrayList<Integer> chartColors = new ArrayList<>();
 
         Map<String, Integer> categoryColorMap = new HashMap<>();
+        categoryColorMap.put("Fixed", Color.parseColor("#6C5CE7")); // NEW: Purple for Fixed
         categoryColorMap.put("Dining", Color.parseColor("#D34B56")); // Red
         categoryColorMap.put("Transport", Color.parseColor("#FFB12B")); // Orange-Yellow
         categoryColorMap.put("Entertainment", Color.parseColor("#5BB1EB")); // Blue
@@ -270,10 +285,10 @@ public class StatisticsActivity extends AppCompatActivity {
         String richText;
 
         if (isCustomDateRange) {
-            // Simplified insight for custom ranges (budget comparisons don't make sense
-            // here)
+            // Simplified insight for custom ranges (budget comparisons don't make sense here)
             richText = "During this period, your biggest expense was <b>" + topCategory +
                     "</b>, making up <b>" + percentage + "%</b> of your spending.<br><br>" +
+                    "Fixed spending: <b>RM " + String.format("%.2f", fixedSpendingTotal) + "</b>.<br><br>" +
                     "You spent a total of <b>RM " + String.format("%.2f", totalSpending) + "</b>.";
         } else {
             // Original budget insight for full months
@@ -281,8 +296,9 @@ public class StatisticsActivity extends AppCompatActivity {
             float monthlyLimit = sharedPreferences.getFloat("limit_2", 1000.0f);
             float dailyLimit = sharedPreferences.getFloat("limit_0", 30.0f);
 
-            float monthlyDiff = monthlyLimit - totalSpending;
-            float dailyDiff = dailyLimit - todayTotalSpending;
+            // Compare budget against VARIABLE spending only
+            float monthlyDiff = monthlyLimit - budgetableSpending;
+            float dailyDiff = dailyLimit - todayBudgetableSpending;
 
             String monthColor = monthlyDiff >= 0 ? "#00B894" : "#D34B56";
             String monthAction = monthlyDiff >= 0 ? "less than" : "<b><font color='#D34B56'>MORE</font></b> than";
@@ -294,9 +310,10 @@ public class StatisticsActivity extends AppCompatActivity {
 
             richText = "Your biggest expense this month was <b>" + topCategory + "</b>, making up <b>" + percentage
                     + "%</b> of your total spending.<br><br>" +
-                    "Today, you spent <font color='" + dayColor + "'><b>" + dayFormatted + "</b></font> " + dayAction
+                    "Fixed spending: <b>RM " + String.format("%.2f", fixedSpendingTotal) + "</b> (Excluded from budget).<br><br>" +
+                    "Today, your variable spending is <font color='" + dayColor + "'><b>" + dayFormatted + "</b></font> " + dayAction
                     + " your daily budget.<br><br>" +
-                    "For this month, you are <font color='" + monthColor + "'><b>" + monthFormatted + "</b></font> "
+                    "For this month, your variable spending is <font color='" + monthColor + "'><b>" + monthFormatted + "</b></font> "
                     + monthAction + " your monthly budget.";
         }
 
