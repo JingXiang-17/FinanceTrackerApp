@@ -14,7 +14,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="4dp"
-        android:textColor="#888888"
+        android:textColor="@color/textSecondary"
         android:textSize="12sp"
         tools:text="2023" />
 
@@ -22,7 +22,7 @@
         android:id="@+id/card_month_bg"
         android:layout_width="56dp"
         android:layout_height="56dp"
-        app:cardBackgroundColor="#9A56B9"
+        app:cardBackgroundColor="@color/colorPrimary"
         app:cardCornerRadius="12dp"
         app:cardElevation="0dp">
 
@@ -31,7 +31,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/textOnPrimary"
             android:textSize="16sp"
             android:textStyle="bold"
             tools:text="Jan" />

@@ -6,7 +6,7 @@
     android:layout_width="140dp"
     android:layout_height="100dp"
     android:layout_marginEnd="16dp"
-    app:cardBackgroundColor="#F0F2FB"
+    app:cardBackgroundColor="@color/cardBackground"
     app:cardCornerRadius="16dp"
     app:cardElevation="0dp">
 
@@ -19,7 +19,7 @@
             android:id="@+id/tv_category_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="#333333"
+            android:textColor="@color/textSecondary"
             android:textSize="14sp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
@@ -30,7 +30,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:textColor="#000000"
+            android:textColor="@color/textPrimary"
             android:textSize="16sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
@@ -41,7 +41,7 @@
         <androidx.cardview.widget.CardView
             android:layout_width="32dp"
             android:layout_height="32dp"
-            app:cardBackgroundColor="#4646E5"
+            app:cardBackgroundColor="@color/colorAccent"
             app:cardCornerRadius="16dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
@@ -50,7 +50,7 @@
                 android:layout_width="16dp"
                 android:layout_height="16dp"
                 android:layout_gravity="center"
-                app:tint="#FFFFFF"
+                app:tint="@color/textOnPrimary"
                 tools:src="@android:drawable/ic_menu_gallery" />
         </androidx.cardview.widget.CardView>
 

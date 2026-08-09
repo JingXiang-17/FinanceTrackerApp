@@ -190,9 +190,10 @@ public class DashboardActivity extends AppCompatActivity {
         double monthTotalSpent = 0.0;
 
         Map<String, Double> categoryTotals = new java.util.LinkedHashMap<>();
-        categoryTotals.put("Food & Beverages", 0.0);
+        categoryTotals.put("Dining", 0.0);
         categoryTotals.put("Transport", 0.0);
         categoryTotals.put("Entertainment", 0.0);
+        categoryTotals.put("Shopping", 0.0);
         categoryTotals.put("Others", 0.0);
 
         // Filter data locally
@@ -288,7 +289,7 @@ public class DashboardActivity extends AppCompatActivity {
         layout.addView(merchantInput);
 
         final Spinner categorySpinner = new Spinner(this);
-        String[] categories = { "Food & Beverages", "Transport", "Entertainment", "Others" };
+        String[] categories = { "Dining", "Transport", "Entertainment", "Shopping", "Others" };
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
                 categories);
         categorySpinner.setAdapter(adapter);
@@ -434,7 +435,7 @@ public class DashboardActivity extends AppCompatActivity {
         layout.addView(merchantInput);
 
         final Spinner categorySpinner = new Spinner(this);
-        String[] categories = { "Food & Beverages", "Transport", "Entertainment", "Others" };
+        String[] categories = { "Dining", "Transport", "Entertainment", "Shopping", "Others" };
         ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_dropdown_item,
                 categories);
         categorySpinner.setAdapter(adapter);

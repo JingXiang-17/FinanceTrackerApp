@@ -3,9 +3,12 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
+        android:name=".FinanceApp" 
         android:theme="@style/Theme.MyApp"
         android:allowBackup="true"
-        android:label="FinanceTracker">
+        android:label="FinanceTracker"
+        android:icon="@mipmap/meowneytrack"
+        android:roundIcon="@mipmap/meowneytrack_round">
 
         <!-- The service must be INSIDE the application block -->
         <service

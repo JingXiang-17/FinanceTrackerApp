@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginBottom="12dp"
-    app:cardBackgroundColor="#FFFFFF"
+    app:cardBackgroundColor="@color/cardBackground"
     app:cardCornerRadius="12dp"
     app:cardElevation="2dp">
 
@@ -51,7 +51,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginEnd="8dp"
-                android:textColor="#000000"
+                android:textColor="@color/textPrimary"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 app:layout_constraintBottom_toTopOf="@id/tv_detail_time"
@@ -67,7 +67,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
                 android:layout_marginTop="4dp"
-                android:textColor="#888888"
+                android:textColor="@color/textSecondary"
                 android:textSize="12sp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toEndOf="@id/card_icon_bg"
@@ -92,7 +92,7 @@
                 android:layout_height="24dp"
                 android:layout_marginEnd="12dp"
                 android:src="@drawable/general_edit"
-                app:tint="#3D82C4"
+                app:tint="@color/colorAccent"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toStartOf="@id/btn_delete"
                 app:layout_constraintTop_toTopOf="parent" />
@@ -126,28 +126,28 @@
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
-                android:background="#EEEEEE"
+                android:background="@color/shimmerBackground"
                 android:layout_marginBottom="8dp"/>
 
             <TextView
                 android:id="@+id/tv_detail_category"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#666666"
+                android:textColor="@color/textSecondary"
                 android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tv_detail_merchant"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#666666"
+                android:textColor="@color/textSecondary"
                 android:textSize="14sp" />
 
             <TextView
                 android:id="@+id/tv_detail_payment"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#666666"
+                android:textColor="@color/textSecondary"
                 android:textSize="14sp" />
 
             <TextView
@@ -155,7 +155,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:textColor="#888888"
+                android:textColor="@color/textSecondary"
                 android:textStyle="italic"
                 android:textSize="14sp" />
 

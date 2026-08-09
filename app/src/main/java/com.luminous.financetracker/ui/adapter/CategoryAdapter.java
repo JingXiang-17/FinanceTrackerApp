@@ -67,14 +67,16 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
     // Maps your categories to the exact same colors used in your Pie Chart
     private int getCategoryColor(String categoryName) {
         switch (categoryName) {
-            case "Food & Beverages":
+            case "Dining":
                 return Color.parseColor("#D34B56"); // Red
             case "Transport":
-                return Color.parseColor("#3D82C4"); // Blue
+                return Color.parseColor("#FFB12B"); // Orange-Yellow
             case "Entertainment":
-                return Color.parseColor("#6C5CE7"); // Purple
+                return Color.parseColor("#5BB1EB"); // Blue
+            case "Shopping":
+                return Color.parseColor("#EB73D3"); // Pink
             case "Others":
-                return Color.parseColor("#E6B94A"); // Yellow
+                return Color.parseColor("#53CF95"); // Green
             default:
                 return Color.parseColor("#B4B4B4"); // Fallback Grey
         }

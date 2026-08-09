@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F8F9FB">
+    android:background="@color/appBackground">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -23,7 +23,7 @@
                 android:id="@+id/header_background"
                 android:layout_width="match_parent"
                 android:layout_height="180dp"
-                android:background="#9A56B9"
+                android:background="@color/colorPrimary"
                 app:layout_constraintTop_toTopOf="parent" />
 
             <!-- Page Title -->
@@ -34,7 +34,7 @@
                 android:layout_marginStart="24dp"
                 android:layout_marginTop="40dp"
                 android:text="Budget"
-                android:textColor="#FFFFFF"
+                android:textColor="@color/textOnPrimary"
                 android:textSize="24sp"
                 android:textStyle="bold"
                 app:layout_constraintStart_toStartOf="parent"
@@ -47,7 +47,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_marginEnd="24dp"
-                app:cardBackgroundColor="#FFFFFF"
+                app:cardBackgroundColor="@color/cardBackground"
                 app:cardCornerRadius="12dp"
                 app:layout_constraintBottom_toBottomOf="@id/tv_page_title"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -57,7 +57,7 @@
                     android:layout_height="20dp"
                     android:layout_gravity="center"
                     android:src="@android:drawable/ic_menu_search"
-                    app:tint="#000000" />
+                    app:tint="@color/textPrimary" />
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Export Icon Button -->
@@ -67,7 +67,7 @@
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:layout_marginEnd="12dp"
-                app:cardBackgroundColor="#FFFFFF"
+                app:cardBackgroundColor="@color/cardBackground"
                 app:cardCornerRadius="12dp"
                 app:layout_constraintBottom_toBottomOf="@id/tv_page_title"
                 app:layout_constraintEnd_toStartOf="@id/btn_search"
@@ -77,7 +77,7 @@
                     android:layout_height="20dp"
                     android:layout_gravity="center"
                     android:src="@drawable/general_download_export"
-                    app:tint="#000000" />
+                    app:tint="@color/textPrimary" />
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Time-Based Budgets (Daily, Weekly, Monthly) -->
@@ -101,10 +101,10 @@
         android:id="@+id/bottom_navigation"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:background="#FFFFFF"
+        android:background="@color/cardBackground"
         app:elevation="16dp"
         app:menu="@menu/bottom_nav_menu"
-        app:itemIconTint="#9A56B9"
+        app:itemIconTint="@color/colorPrimary"
         app:labelVisibilityMode="unlabeled"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"

@@ -222,12 +222,14 @@ public class StatisticsActivity extends AppCompatActivity {
         ArrayList<Integer> chartColors = new ArrayList<>();
 
         Map<String, Integer> categoryColorMap = new HashMap<>();
-        categoryColorMap.put("Food & Beverages", Color.parseColor("#D34B56"));
-        categoryColorMap.put("Transport", Color.parseColor("#3D82C4"));
-        categoryColorMap.put("Entertainment", Color.parseColor("#6C5CE7"));
-        categoryColorMap.put("Others", Color.parseColor("#E6B94A"));
-        int defaultFallbackColor = Color.parseColor("#888888");
+        categoryColorMap.put("Dining", Color.parseColor("#D34B56")); // Red
+        categoryColorMap.put("Transport", Color.parseColor("#FFB12B")); // Orange-Yellow
+        categoryColorMap.put("Entertainment", Color.parseColor("#5BB1EB")); // Blue
+        categoryColorMap.put("Shopping", Color.parseColor("#EB73D3")); // Pink
+        categoryColorMap.put("Others", Color.parseColor("#53CF95")); // Green
+        int defaultFallbackColor = Color.parseColor("#B4B4B4"); // Fallback Grey
 
+        // --- THE MISSING LOOP ---
         for (Map.Entry<String, Float> mapEntry : categoryTotals.entrySet()) {
             float sliceValue = mapEntry.getValue();
             String sliceName = mapEntry.getKey();

@@ -1,6 +1,8 @@
 package com.luminous.financetracker.ui.settings;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -8,9 +10,12 @@ import android.os.Looper;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.Toast;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
@@ -56,8 +61,32 @@ public class SettingsActivity extends AppCompatActivity {
 
         progressSync = findViewById(R.id.progress_sync);
 
-        // 1. Initialize ViewModel and cache the latest list of transactions for
-        // exporting
+        // Modular setup functions
+        setupDarkModeToggle();
+        setupDataManagement();
+        setupBottomNavigation();
+    }
+
+    // --- SETUP: DARK MODE ---
+    private void setupDarkModeToggle() {
+        SharedPreferences prefs = getSharedPreferences("ThemePrefs", MODE_PRIVATE);
+        SwitchCompat switchDarkMode = findViewById(R.id.switch_dark_mode);
+
+        // 1. Determine if the app is currently in dark mode to set the switch's initial state
+        int currentNightMode = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        switchDarkMode.setChecked(currentNightMode == Configuration.UI_MODE_NIGHT_YES);
+
+        // 2. Listen for the user tapping the toggle
+        switchDarkMode.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            int newMode = isChecked ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO;
+            AppCompatDelegate.setDefaultNightMode(newMode);
+            prefs.edit().putInt("theme_mode", newMode).apply();
+        });
+    }
+
+    // --- SETUP: DATA MANAGEMENT (IMPORT/EXPORT) ---
+    private void setupDataManagement() {
+        // 1. Initialize ViewModel and cache the latest list of transactions for exporting
         transactionViewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
         transactionViewModel.getAllTransactions().observe(this, transactions -> {
             if (transactions != null) {
@@ -85,7 +114,7 @@ public class SettingsActivity extends AppCompatActivity {
                     }
                 });
 
-        // --- EXPORT BUTTON CLICK ---
+        // 4. Bind Export Button Click
         MaterialCardView cardExport = findViewById(R.id.card_export_csv);
         cardExport.setOnClickListener(v -> {
             if (currentTransactions.isEmpty()) {
@@ -100,7 +129,7 @@ public class SettingsActivity extends AppCompatActivity {
             exportCsvLauncher.launch(intent);
         });
 
-        // --- IMPORT BUTTON CLICK ---
+        // 5. Bind Import Button Click
         MaterialCardView cardImport = findViewById(R.id.card_import_csv);
         cardImport.setOnClickListener(v -> {
             // Ask Android to open a document
@@ -109,8 +138,10 @@ public class SettingsActivity extends AppCompatActivity {
             intent.setType("*/*"); // Using */* because some phones don't map text/csv properly
             importCsvLauncher.launch(intent);
         });
+    }
 
-        // --- STICKY BOTTOM NAVIGATION LOGIC ---
+    // --- SETUP: BOTTOM NAVIGATION ---
+    private void setupBottomNavigation() {
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         bottomNavigationView.setSelectedItemId(R.id.nav_settings);
 
