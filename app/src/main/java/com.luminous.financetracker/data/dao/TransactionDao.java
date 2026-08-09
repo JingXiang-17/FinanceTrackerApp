@@ -25,8 +25,9 @@ public interface TransactionDao {
     List<Transaction> getTransactionsByDate(long date);
 
     // 3. Calculate total spent since a specific time
-    @Query("SELECT SUM(amount) FROM transaction_table WHERE timestamp >= :startTimestamp AND category != 'Fixed'")
+    @Query("SELECT COALESCE(SUM(amount), 0.0) FROM transaction_table WHERE timestamp >= :startTimestamp")
     LiveData<Double> getTotalSpentSince(long startTimestamp);
+
     // 4. Update the transaction details if have typo or anything
     @Update
     void update(Transaction transaction);

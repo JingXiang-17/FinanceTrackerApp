@@ -45,8 +45,7 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
         // --- EMPTY STATE & COLOR LOGIC ---
         if (amount == 0.0) {
             // Empty Phase: Turn the card Light Grey
-            int cardColor = androidx.core.content.ContextCompat.getColor(holder.itemView.getContext(), R.color.cardBackground);
-            holder.cardContainer.setCardBackgroundColor(cardColor);
+            holder.cardContainer.setCardBackgroundColor(Color.parseColor("#E0E0E0"));
 
             // Optional: Dim the icon to match the greyed-out state
             holder.ivIcon.setColorFilter(Color.parseColor("#A0A0A0"));
@@ -68,8 +67,6 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
     // Maps your categories to the exact same colors used in your Pie Chart
     private int getCategoryColor(String categoryName) {
         switch (categoryName) {
-            case "Fixed":
-                return Color.parseColor("#6C5CE7"); // NEW: Purple for Fixed
             case "Dining":
                 return Color.parseColor("#D34B56"); // Red
             case "Transport":

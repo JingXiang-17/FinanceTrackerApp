@@ -12,8 +12,6 @@
     <!-- Text Colors -->
     <color name="textPrimary">#000000</color>
     <color name="textSecondary">#212121</color>
-    <color name="textPrimaryCat">#000000</color>
-    <color name="textSecondaryCat">#212121</color>
     <color name="textHighlight">#2648A4</color>
     <color name="textOnPrimary">#FFFFFF</color>
 </resources>
