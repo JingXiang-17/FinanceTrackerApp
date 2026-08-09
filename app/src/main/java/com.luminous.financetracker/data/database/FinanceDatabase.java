@@ -14,7 +14,7 @@ import com.luminous.financetracker.util.Constants;
 import com.luminous.financetracker.util.DateConverter;
 
 // 1. Updated version to 3 for the new Transaction fields
-@Database(entities = {Transaction.class, Budget.class}, version = 3, exportSchema = false)
+@Database(entities = {Transaction.class, Budget.class}, version = 1, exportSchema = false)
 @TypeConverters({DateConverter.class})
 public abstract class FinanceDatabase extends RoomDatabase {
 

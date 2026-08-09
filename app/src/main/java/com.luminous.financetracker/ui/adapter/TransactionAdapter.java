@@ -121,8 +121,23 @@ public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdap
 
             btnDelete.setOnClickListener(v -> {
                 int position = getAdapterPosition();
+
+                // Ensure the item still exists before doing anything
                 if (listener != null && position != RecyclerView.NO_POSITION) {
-                    listener.onDeleteClick(getItem(position));
+
+                    // Launch the confirmation popup
+                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(v.getContext())
+                            .setTitle("Delete Transaction")
+                            .setMessage("Are you sure you want to delete this transaction? This action cannot be undone.")
+                            .setPositiveButton("Delete transaction", (dialog, which) -> {
+                                // They clicked Yes, so execute your original delete logic
+                                listener.onDeleteClick(getItem(position));
+                            })
+                            .setNegativeButton("Cancel", (dialog, which) -> {
+                                // They clicked Cancel, just close the popup
+                                dialog.dismiss();
+                            })
+                            .show();
                 }
             });
         }
