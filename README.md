@@ -4,6 +4,10 @@ An offline-first, privacy-focused Android finance tracker built with Java, XML, 
 
 This app is being developed for personal use, but feel free to fork it if you want.
 
+All version of apks are stored in `App version` directory. Feel free to download and use.
+
+Might need to bypass Play Protect and some Android security. Don't worry, this is not a malicious app. I don't have such ability to steal your information because I can't even retreieve mine. The app only lives in your local storage. No cloud, no AI API keys, not even need WiFi.
+
 ---
 
 ## Quick Navigation
