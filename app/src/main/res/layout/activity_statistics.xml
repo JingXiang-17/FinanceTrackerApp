@@ -197,11 +197,13 @@
         android:layout_height="wrap_content"
         android:background="@color/cardBackground"
         app:elevation="16dp"
-        app:menu="@menu/bottom_nav_menu"
-        app:itemIconTint="@color/colorPrimary"
         app:labelVisibilityMode="unlabeled"
-        app:layout_constraintStart_toStartOf="parent"
+        app:itemRippleColor="@null"
+        app:itemBackground="@drawable/nav_item_bg"
+        app:itemIconTint="@drawable/nav_icon_tint"
+        app:menu="@menu/bottom_nav_menu"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

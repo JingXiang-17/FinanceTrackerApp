@@ -14,74 +14,107 @@ import androidx.core.app.NotificationManagerCompat;
 import com.luminous.financetracker.R;
 import com.luminous.financetracker.data.dao.TransactionDao;
 
+import java.util.Map;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class BudgetAlertManager {
 
-    private static final String CHANNEL_ID = "budget_alerts";
+    // Reusable Executor prevents the memory leak identified in the review
+    private static final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public static void checkBudgets(Context context, TransactionDao dao) {
-        // Run on a background thread so we don't freeze the app
-        Executors.newSingleThreadExecutor().execute(() -> {
-            SharedPreferences prefs = context.getSharedPreferences("BudgetPrefs", Context.MODE_PRIVATE);
+        executor.execute(() -> {
+            SharedPreferences prefs = context.getSharedPreferences(Constants.PREF_NAME, Context.MODE_PRIVATE);
 
-            float dailyLimit = prefs.getFloat("limit_0", 30.0f);
-            float weeklyLimit = prefs.getFloat("limit_1", 200.0f);
-            float monthlyLimit = prefs.getFloat("limit_2", 1000.0f);
+            float dailyLimit = prefs.getFloat(Constants.KEY_LIMIT_0, 30.0f);
+            float monthlyLimit = prefs.getFloat(Constants.KEY_LIMIT_1, 1000.0f);
 
-            // Fetch current totals directly from the database
-            double dailySpent = dao.getTotalSpentSinceSync(TimeUtils.getStartOfDay());
-            double weeklySpent = dao.getTotalSpentSinceSync(TimeUtils.getStartOfWeek());
-            double monthlySpent = dao.getTotalSpentSinceSync(TimeUtils.getStartOfMonth());
+            long startOfDay = TimeUtils.getStartOfDay();
+            long startOfMonth = TimeUtils.getStartOfMonth();
+
+            // Enforces the "Fixed" category domain rule via the updated DAO method
+            double dailySpent = dao.getTotalVariableSpentSinceSync(startOfDay, Constants.CATEGORY_FIXED);
+            double monthlySpent = dao.getTotalVariableSpentSinceSync(startOfMonth, Constants.CATEGORY_FIXED);
 
             createNotificationChannel(context);
 
-            // Check each time period (using unique IDs: 101, 102, 103 so they can stack in the tray)
-            checkThreshold(context, prefs, "Daily", dailySpent, dailyLimit, TimeUtils.getStartOfDay(), 101);
-            checkThreshold(context, prefs, "Weekly", weeklySpent, weeklyLimit, TimeUtils.getStartOfWeek(), 102);
-            checkThreshold(context, prefs, "Monthly", monthlySpent, monthlyLimit, TimeUtils.getStartOfMonth(), 103);
+            // FIX: Use Constants instead of hardcoded "Daily" and "Monthly"
+            checkThreshold(context, prefs, Constants.PERIOD_DAILY, dailySpent, dailyLimit, startOfDay, 101);
+            checkThreshold(context, prefs, Constants.PERIOD_MONTHLY, monthlySpent, monthlyLimit, startOfMonth, 102);
+
+            // Garbage collection for SharedPreferences bloat
+            cleanupOldPrefs(prefs, startOfDay, startOfMonth);
         });
     }
 
     private static void checkThreshold(Context context, SharedPreferences prefs, String period, double spent, float limit, long periodStart, int notificationId) {
-        if (limit <= 0) return; // Prevent division by zero
+        if (limit <= 0) return;
 
         double percentage = (spent / limit) * 100;
 
-        // Dynamic keys tied to the start timestamp.
-        // Example: "Daily_80_notified_1698710400000". This automatically resets when a new day/week/month starts!
-        String key80 = period + "_80_notified_" + periodStart;
-        String key100 = period + "_100_notified_" + periodStart;
+        // FIX: Use centralized key builder
+        String key80 = buildNotifiedKey(period, 80, periodStart);
+        String key100 = buildNotifiedKey(period, 100, periodStart);
 
         if (percentage >= 100 && !prefs.getBoolean(key100, false)) {
             String message = String.format("You spent RM %.2f, exceeding your %s limit of RM %.2f!", spent, period, limit);
             sendNotification(context, period + " Budget Exceeded \u26A0\uFE0F", message, notificationId);
-
-            // Mark as notified
             prefs.edit().putBoolean(key100, true).apply();
 
         } else if (percentage >= 80 && percentage < 100 && !prefs.getBoolean(key80, false)) {
             String message = String.format("You have reached %.2f%% of your %s budget.", percentage, period);
             sendNotification(context, period + " Budget Warning \uD83D\uDEA8", message, notificationId);
-
-            // Mark as notified
             prefs.edit().putBoolean(key80, true).apply();
         }
     }
 
+    // FIX: Centralized key builder to prevent drift
+    private static String buildNotifiedKey(String period, int threshold, long timestamp) {
+        return period + "_" + threshold + "_notified_" + timestamp;
+    }
+
+    // FIX: Safer parsing utilizing the Constants and matching the exact builder pattern
+    private static void cleanupOldPrefs(SharedPreferences prefs, long currentDailyStart, long currentMonthlyStart) {
+        SharedPreferences.Editor editor = prefs.edit();
+        Map<String, ?> allEntries = prefs.getAll();
+        boolean hasDeletions = false;
+
+        for (String key : allEntries.keySet()) {
+            if (!key.contains("_notified_")) continue;
+
+            try {
+                long timestamp = Long.parseLong(key.substring(key.lastIndexOf("_") + 1));
+
+                if (key.startsWith(Constants.PERIOD_DAILY + "_") && timestamp < currentDailyStart) {
+                    editor.remove(key);
+                    hasDeletions = true;
+                } else if (key.startsWith(Constants.PERIOD_MONTHLY + "_") && timestamp < currentMonthlyStart) {
+                    editor.remove(key);
+                    hasDeletions = true;
+                }
+            } catch (NumberFormatException e) {
+                // Ignore gracefully if a malformed key sneaks in
+            }
+        }
+
+        if (hasDeletions) {
+            editor.apply();
+        }
+    }
+
     private static void sendNotification(Context context, String title, String message, int notificationId) {
-        // Safety check for Android 13+ Notification Permissions
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ActivityCompat.checkSelfPermission(context, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 return;
             }
         }
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_dialog_info) // You can replace this with your own drawable
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Constants.CHANNEL_BUDGET_ALERTS)
+                .setSmallIcon(R.mipmap.meowneytrack_round)
                 .setContentTitle(title)
                 .setContentText(message)
-                .setStyle(new NotificationCompat.BigTextStyle().bigText(message)) // Allows expanding for longer text
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setAutoCancel(true);
 
@@ -91,7 +124,7 @@ public class BudgetAlertManager {
     private static void createNotificationChannel(Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
+                    Constants.CHANNEL_BUDGET_ALERTS,
                     "Budget Alerts",
                     NotificationManager.IMPORTANCE_HIGH
             );

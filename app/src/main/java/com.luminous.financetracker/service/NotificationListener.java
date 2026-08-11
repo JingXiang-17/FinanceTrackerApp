@@ -1,217 +1,183 @@
 package com.luminous.financetracker.service;
 
+import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
+import android.util.Log;
+import android.util.LruCache;
 
 import com.luminous.financetracker.data.database.FinanceDatabase;
 import com.luminous.financetracker.data.entity.Transaction;
 import com.luminous.financetracker.repository.TransactionRepository;
 import com.luminous.financetracker.util.BudgetAlertManager;
+import com.luminous.financetracker.util.Constants;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class NotificationListener extends NotificationListenerService {
 
+    private static final String TAG = "NotificationListener";
+
+    // Reusable Repository instance (prevents memory churn)
+    private TransactionRepository repository;
+
+    // Deduplication Cache: Stores notification keys to prevent duplicate inserts (50 items max)
+    private static final LruCache<String, Long> processedNotifications = new LruCache<>(50);
+
+    // 1. Compile Targets using Constants.java
+    private static final List<String> TARGET_APPS = Arrays.asList(
+            Constants.PKG_TNG, Constants.PKG_SHOPEE, Constants.PKG_LAZADA,
+            Constants.PKG_GRAB, Constants.PKG_TEMU, Constants.PKG_WECHAT,
+            Constants.PKG_ALIPAY, Constants.PKG_BOOST, Constants.PKG_HLB,
+            Constants.PKG_RHB, Constants.PKG_BANK_RAKYAT, Constants.PKG_MAE,
+            Constants.PKG_RYT, Constants.PKG_CIMB, Constants.PKG_OCBC
+    );
+
+    // 2. Pre-compiled Regex Patterns
+    private static final Pattern PROMO_PATTERN = Pattern.compile(
+            "\\b(to get|to win|min(imum)? spend(t)?|up to|win rm|t&c|terms( and | & )conditions|promo(tions?)?|expir(e|ing|y)|cashback|voucher|survey|reward|redeem|discount|% off|deal|limited time|pay later)\\b",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    private static final Pattern CASH_IN_PATTERN = Pattern.compile(
+            "\\b(credited|ka-ching|refund|top up)\\b|" +
+                    "\\b(received?)\\b.{1,30}\\bfrom\\b|" +
+                    "\\bhas\\s+transferred\\b.{1,30}\\bto\\s+you\\b|" +
+                    "\\bwas\\s+transferred\\b.{1,30}\\bto\\s+you\\b",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    private static final Pattern EXPENSE_PATTERN = Pattern.compile(
+            "\\b(spend|spent|deducted|debited|not you|charged|transaction)\\b|" +
+                    "\\b(you( have)?( successfully)? transferred|payment|paid|successful.*transfer|your transfer)\\b.{1,50}\\bto\\b|" +
+                    "\\btransfer.*successful\\b",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    private static final Pattern AMOUNT_PATTERN = Pattern.compile(
+            "rm\\s?(\\d+\\.\\d{2})",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    // Captures everything after "to " until it hits a period, the word "on", "not you", or end of string
+    private static final Pattern MERCHANT_PATTERN = Pattern.compile(
+            "\\bto\\s+([A-Za-z0-9\\s&\\*\\-]+?)(?=\\.|\\s+on\\b|\\s+not you|$)",
+            Pattern.CASE_INSENSITIVE
+    );
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        // Instantiate repository ONLY ONCE
+        repository = new TransactionRepository(getApplication());
+    }
+
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
-        // 1 : Get and filter the package names of a notification
         String packageName = sbn.getPackageName();
 
-        // Define the financial apps that matters
-        List<String> targetApps = Arrays.asList(
-                //ewallets / online shopping
-                "my.com.tngdigital.ewallet", // Touch 'n Go eWallet
-                "com.shopee.my", // Shopee / ShopeePay
-                "com.lazada.android", // Lazada
-                "com.grabtaxi.passenger", // Grab / GrabPay
-                "com.einnovation.temu", // Temu
-                "com.tencent.mm", // Wechat / Wechat Pay
-                "com.eg.android.AlipayGphone", // Alipay
-                "my.com.myboost", // Boost ewallet
-                //banks
-                "com.hongleongconnect.mobileconnect", // Hong Leong Bank
-                "com.rhbgroup.rhbmobilebanking", // RHB Bank
-                "com.irakyatmob.bkrm", // Bank Rakyat
-                "com.maybank2u.life", // MAE by Maybank
-                "my.rytbank.app", // Ryt Bank
-                "com.cimbocto", //CIMB Bank
-                "com.ocbc.mobilemy" //OCBC Bank
-        );
-
-        // If the notification is NOT from your target list, drop it immediately
-        if (packageName == null || !targetApps.contains(packageName)) {
+        if (packageName == null || !TARGET_APPS.contains(packageName)) {
             return;
         }
 
-        // 2 : Get and filter the notification text and title
-        String text = sbn.getNotification().extras.getString(android.app.Notification.EXTRA_TEXT);
-        String title = sbn.getNotification().extras.getString(android.app.Notification.EXTRA_TITLE); // Get Title for Merchant
+        Bundle extras = sbn.getNotification().extras;
+        String title = extras.getString(android.app.Notification.EXTRA_TITLE);
+        String body = extras.getString(android.app.Notification.EXTRA_TEXT);
+        String bigText = extras.getString(android.app.Notification.EXTRA_BIG_TEXT);
 
-        // If it's a silent notification with no text, drop it
-        if (text == null || text.isEmpty()) {
+// Combine everything available so your regex checks the whole notification payload
+        String text = (title != null ? title + " " : "") +
+                (body != null ? body + " " : "") +
+                (bigText != null ? bigText : "");
+        if (text == null || text.trim().isEmpty()) {
             return;
         }
 
-        // 3 : Extract the amount from 'text' using Regex
-        String lowercase = text.toLowerCase();
-        if (lowercase.contains("transferred to you") || lowercase.contains("received")) { //mainly to address transferred keyword from tng notification
+        // --- DEDUPLICATION GUARD ---
+        // Prevents Android from processing the same notification twice if it updates
+        String notificationKey = sbn.getKey();
+        long currentTime = System.currentTimeMillis();
+        Long lastProcessedTime = processedNotifications.get(notificationKey);
+
+        if (lastProcessedTime != null && (currentTime - lastProcessedTime < 10000)) {
+            Log.d(TAG, "Duplicate notification dropped: " + notificationKey);
             return;
         }
+        processedNotifications.put(notificationKey, currentTime);
 
-        boolean isPromotion = (lowercase.contains("to get") || (lowercase.contains("to win")) || lowercase.contains("min spend") || lowercase.contains("min spent") || lowercase.contains("minimum spend") ||
-                lowercase.contains ("minimum spent") || lowercase.contains ("up to") || lowercase.contains ("win rm") || lowercase.contains ("terms and conditions") || lowercase.contains ("t&c") || lowercase.contains ("terms & conditions") ||
-                lowercase.contains ("t & c") || lowercase.contains ("promo") || lowercase.contains ("expiring") || lowercase.contains ("expire") || lowercase.contains ("cashback") ||
-                lowercase.contains ("voucher") || lowercase.contains ("survey"));
+        // --- PARSING PIPELINE ---
+        String lowerText = text.toLowerCase();
 
-        boolean isExpense = (lowercase.contains("spend") || lowercase.contains("paid") || lowercase.contains("deducted") || lowercase.contains("payment") || lowercase.contains("transferred") || lowercase.contains("spent"));
+        if (PROMO_PATTERN.matcher(lowerText).find()) return;
+        if (CASH_IN_PATTERN.matcher(lowerText).find()) return;
+        if (!EXPENSE_PATTERN.matcher(lowerText).find()) return;
 
-        if (isPromotion) {
-            return;
-        }
-        if (!isExpense) { //this is cash in.
-            if (lowercase.contains("receive") || lowercase.contains("credit") || lowercase.contains("top up") || lowercase.contains("ka-ching") || lowercase.contains("refund")) {
-                return;
-            }
-            // not expense or income -- promotion or spam. drop this.
-            return;
-        }
+        Matcher amountMatcher = AMOUNT_PATTERN.matcher(text);
 
-        Pattern pattern = Pattern.compile("rm\\s?(\\d+\\.\\d{2})", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(text);
-
-        if (matcher.find()) {
+        if (amountMatcher.find()) {
             try {
-                String amountString = matcher.group(1);
+                String amountString = amountMatcher.group(1);
                 double amount = Double.parseDouble(amountString);
-                long currentTimestamp = System.currentTimeMillis();
 
-                // --- DATA EXTRACTION ENGINE ---
-                String category = determineCategory(lowercase);
-                String paymentMethod = determinePaymentMethod(packageName); // The "From"
-                String merchantName = determineMerchant(lowercase, title); // The "To"
+                // Extract Merchant Name dynamically instead of hardcoding "Unknown"
+                String merchantName = "Unknown";
+                Matcher merchantMatcher = MERCHANT_PATTERN.matcher(text);
+                if (merchantMatcher.find()) {
+                    merchantName = merchantMatcher.group(1).trim();
+                }
 
-                // 4: Construct the Transaction entity using the NEW 7-parameter constructor
-                // Format: amount, text, category, timestamp, paymentMethod, merchantName, notes
+                String paymentMethod = determinePaymentMethod(packageName);
+
                 Transaction newTransaction = new Transaction(
                         amount,
                         text,
-                        category,
-                        currentTimestamp,
+                        Constants.CATEGORY_OTHERS, // Extracted from Constants
+                        currentTime,
                         paymentMethod,
                         merchantName,
-                        "" // Leave notes empty for auto-captured transactions
+                        ""
                 );
 
-                // 5: Dispatch to the repository to save asynchronously
-                TransactionRepository repository = new TransactionRepository(getApplication());
-                repository.insert(newTransaction);
-
-                // 6: Trigger the Budget Alerts check
-                FinanceDatabase db = FinanceDatabase.getDatabase(getApplicationContext());
-                BudgetAlertManager.checkBudgets(getApplicationContext(), db.transactionDao());
+                // Execute Insert WITH CALLBACK to prevent the Race Condition
+                repository.insert(newTransaction, () -> {
+                    // This block only runs AFTER the database confirms the save is complete
+                    FinanceDatabase db = FinanceDatabase.getDatabase(getApplicationContext());
+                    BudgetAlertManager.checkBudgets(getApplicationContext(), db.transactionDao());
+                    Log.d(TAG, "Transaction saved and budget checked: RM" + amount);
+                });
 
             } catch (NumberFormatException e) {
-                e.printStackTrace();
+                Log.e(TAG, "Failed to parse amount from notification: " + text, e);
             }
         }
     }
 
     @Override
     public void onNotificationRemoved(StatusBarNotification sbn) {
-
+        // Implementation not needed for current functionality
     }
-
-    // --- HELPER METHODS ---
 
     private String determinePaymentMethod(String packageName) {
         switch (packageName) {
-            case "my.com.tngdigital.ewallet": return "Touch 'n Go eWallet";
-            case "com.shopee.my": return "ShopeePay";
-            case "com.lazada.android": return "Lazada Wallet";
-            case "com.grabtaxi.passenger": return "GrabPay";
-            case "com.einnovation.temu": return "Temu";
-            case "com.tencent.mm": return "WeChat Pay";
-            case "com.eg.android.AlipayGphone": return "Alipay";
-            case "my.com.myboost": return "Boost";
-            case "com.hongleongconnect.mobileconnect": return "Hong Leong Bank";
-            case "com.rhbgroup.rhbmobilebanking": return "RHB Bank";
-            case "com.irakyatmob.bkrm": return "Bank Rakyat";
-            case "com.maybank2u.life": return "MAE";
-            case "my.rytbank.app": return "Ryt Bank";
-            case "com.cimbocto": return "CIMB Bank";
-            case "com.ocbc.mobilemy": return "OCBC Bank";
-            default: return "Unknown App";
+            case Constants.PKG_TNG: return Constants.PAY_TNG;
+            case Constants.PKG_SHOPEE: return Constants.PAY_SHOPEE;
+            case Constants.PKG_LAZADA: return Constants.PAY_LAZADA;
+            case Constants.PKG_GRAB: return Constants.PAY_GRAB;
+            case Constants.PKG_TEMU: return Constants.PAY_TEMU;
+            case Constants.PKG_WECHAT: return Constants.PAY_WECHAT;
+            case Constants.PKG_ALIPAY: return Constants.PAY_ALIPAY;
+            case Constants.PKG_BOOST: return Constants.PAY_BOOST;
+            case Constants.PKG_HLB: return Constants.PAY_HLB;
+            case Constants.PKG_RHB: return Constants.PAY_RHB;
+            case Constants.PKG_BANK_RAKYAT: return Constants.PAY_BANK_RAKYAT;
+            case Constants.PKG_MAE: return Constants.PAY_MAE;
+            case Constants.PKG_RYT: return Constants.PAY_RYT;
+            case Constants.PKG_CIMB: return Constants.PAY_CIMB;
+            case Constants.PKG_OCBC: return Constants.PAY_OCBC;
+            default: return Constants.PAY_UNKNOWN;
         }
-    }
-
-    private String determineMerchant(String lowercaseText, String notificationTitle) {
-        // 1. Try to find a known merchant keyword in the text first
-        if (lowercaseText.contains("kfc")) return "KFC";
-        if (lowercaseText.contains("luck bros kopi")) return "Luck Bros Kopi";
-        if (lowercaseText.contains("sushi village")) return "Sushi Village";
-        if (lowercaseText.contains("uni ramen")) return "Uni Ramen";
-        if (lowercaseText.contains("taiwan tea house")) return "Taiwan Tea House";
-        if (lowercaseText.contains("emart24")) return "emart24";
-        if (lowercaseText.contains("luckin coffee")) return "Luckin Coffee";
-        if (lowercaseText.contains("gigi coffee")) return "Gigi Coffee";
-        if (lowercaseText.contains("koppiku")) return "Koppiku";
-        if (lowercaseText.contains("tealive")) return "Tealive";
-        if (lowercaseText.contains("zus coffee")) return "ZUS Coffee";
-        if (lowercaseText.contains("water bar")) return "Water Bar";
-        if (lowercaseText.contains("golden screen cinemas") || lowercaseText.contains("gsc")) return "Golden Screen Cinemas";
-        if (lowercaseText.contains("legoland")) return "Legoland";
-        if (lowercaseText.contains("ktm")) return "KTM";
-        if (lowercaseText.contains("airasia")) return "AirAsia";
-        if (lowercaseText.contains("malaysia airlines")) return "Malaysia Airlines";
-
-        // 2. Fallback: Often, the title of the notification IS the merchant name (e.g. "Payment to Starbucks")
-        if (notificationTitle != null && !notificationTitle.isEmpty()) {
-            return notificationTitle;
-        }
-
-        // 3. Absolute fallback
-        return "Unknown Merchant";
-    }
-
-    private String determineCategory(String lowercaseText) {
-        Map<String, String> keywordMap = new HashMap<>();
-
-        // Food & Beverages (Merged)
-        keywordMap.put("kfc", "Food & Beverages");
-        keywordMap.put("luck bros kopi", "Food & Beverages");
-        keywordMap.put("sushi village", "Food & Beverages");
-        keywordMap.put("uni ramen", "Food & Beverages");
-        keywordMap.put("taiwan tea house", "Food & Beverages");
-        keywordMap.put("emart24", "Food & Beverages");
-        keywordMap.put("luckin coffee", "Food & Beverages");
-        keywordMap.put("gigi coffee", "Food & Beverages");
-        keywordMap.put("koppiku", "Food & Beverages");
-        keywordMap.put("tealive", "Food & Beverages");
-        keywordMap.put("zus coffee", "Food & Beverages");
-        keywordMap.put("water bar", "Food & Beverages");
-
-        // Entertainment
-        keywordMap.put("golden screen cinemas", "Entertainment");
-        keywordMap.put("legoland", "Entertainment");
-
-        // Transport
-        keywordMap.put("ktm", "Transport");
-        keywordMap.put("airasia", "Transport");
-        keywordMap.put("malaysia airlines", "Transport");
-
-        // Scan the notification for matches
-        for (Map.Entry<String, String> entry : keywordMap.entrySet()) {
-            if (lowercaseText.contains(entry.getKey())) {
-                return entry.getValue();
-            }
-        }
-
-        // Fallback for everything else
-        return "Others";
     }
 }

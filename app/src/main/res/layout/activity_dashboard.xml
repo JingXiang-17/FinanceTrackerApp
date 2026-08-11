@@ -51,27 +51,63 @@
                         <LinearLayout
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="40dp"
                             android:layout_marginStart="24dp"
+                            android:layout_marginTop="40dp"
                             android:orientation="horizontal">
 
-                            <View android:layout_width="48dp" android:layout_height="48dp" android:background="@color/shimmerBackground" />
+                            <View
+                                android:layout_width="48dp"
+                                android:layout_height="48dp"
+                                android:background="@color/shimmerBackground" />
 
                             <LinearLayout
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:orientation="vertical"
+                                android:layout_gravity="center_vertical"
                                 android:layout_marginStart="12dp"
-                                android:layout_gravity="center_vertical">
-                                <View android:layout_width="100dp" android:layout_height="12dp" android:background="@color/shimmerBackground" />
-                                <View android:layout_width="120dp" android:layout_height="20dp" android:layout_marginTop="8dp" android:background="@color/shimmerBackground" />
+                                android:orientation="vertical">
+
+                                <View
+                                    android:layout_width="100dp"
+                                    android:layout_height="12dp"
+                                    android:background="@color/shimmerBackground" />
+
+                                <View
+                                    android:layout_width="120dp"
+                                    android:layout_height="20dp"
+                                    android:layout_marginTop="8dp"
+                                    android:background="@color/shimmerBackground" />
                             </LinearLayout>
                         </LinearLayout>
 
-                        <View android:layout_width="48dp" android:layout_height="48dp" android:layout_gravity="end" android:layout_marginEnd="24dp" android:layout_marginTop="-48dp" android:background="@color/shimmerBackground" />
-                        <View android:layout_width="match_parent" android:layout_height="180dp" android:background="@color/shimmerBackground" android:layout_marginHorizontal="24dp" android:layout_marginTop="40dp" />
-                        <View android:layout_width="match_parent" android:layout_height="100dp" android:background="@color/shimmerBackground" android:layout_marginHorizontal="24dp" android:layout_marginTop="48dp" />
-                        <View android:layout_width="match_parent" android:layout_height="120dp" android:background="@color/shimmerBackground" android:layout_marginHorizontal="24dp" android:layout_marginTop="48dp" />
+                        <View
+                            android:layout_width="48dp"
+                            android:layout_height="48dp"
+                            android:layout_gravity="end"
+                            android:layout_marginTop="-48dp"
+                            android:layout_marginEnd="24dp"
+                            android:background="@color/shimmerBackground" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="180dp"
+                            android:layout_marginHorizontal="24dp"
+                            android:layout_marginTop="40dp"
+                            android:background="@color/shimmerBackground" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="100dp"
+                            android:layout_marginHorizontal="24dp"
+                            android:layout_marginTop="48dp"
+                            android:background="@color/shimmerBackground" />
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="120dp"
+                            android:layout_marginHorizontal="24dp"
+                            android:layout_marginTop="48dp"
+                            android:background="@color/shimmerBackground" />
 
                     </LinearLayout>
                 </com.facebook.shimmer.ShimmerFrameLayout>
@@ -101,12 +137,12 @@
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintTop_toTopOf="parent">
                         <ImageView
+                            android:id="@+id/iv_profile_image"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:background="@color/shimmerBackground"
                             android:src="@drawable/ic_profile_placeholder"
-                            android:scaleType="centerInside"
-                            tools:src="@tools:sample/avatars" />
+                            android:scaleType="centerCrop" />
                     </androidx.cardview.widget.CardView>
 
                     <TextView
@@ -264,6 +300,59 @@
                         </androidx.constraintlayout.widget.ConstraintLayout>
                     </com.google.android.material.card.MaterialCardView>
 
+                    <!-- ========================================== -->
+                    <!-- NEW: FIXED SPENDING SECTION                -->
+                    <!-- ========================================== -->
+                    <TextView
+                        android:id="@+id/tv_fixed_spending_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="24dp"
+                        android:layout_marginTop="32dp"
+                        android:text="Fixed Spending"
+                        android:textColor="@color/textPrimary"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toBottomOf="@id/card_budget" />
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/card_fixed_spending"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="24dp"
+                        android:layout_marginTop="16dp"
+                        app:cardBackgroundColor="@color/cardBackground"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="4dp"
+                        app:layout_constraintTop_toBottomOf="@id/tv_fixed_spending_title">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="20dp">
+
+                            <TextView
+                                android:id="@+id/tv_fixed_spending_amount"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                tools:text="RM 0.00"
+                                android:textColor="@color/textPrimary"
+                                android:textSize="24sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="8dp"
+                                android:text="This is your fixed spending (e.g., rent, loans). It is excluded from your budget but included in your total spending."
+                                android:textColor="@color/textSecondary"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <!-- Original Categories Title (Constraint Updated) -->
                     <TextView
                         android:id="@+id/tv_categories_title"
                         android:layout_width="wrap_content"
@@ -275,8 +364,7 @@
                         android:textSize="20sp"
                         android:textStyle="bold"
                         app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toBottomOf="@id/card_budget" />
-
+                        app:layout_constraintTop_toBottomOf="@id/card_fixed_spending" />
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rv_categories"
                         android:layout_width="match_parent"
@@ -336,6 +424,7 @@
                         android:textColor="@color/textSecondary"
                         android:textSize="14sp"
                         android:layout_marginTop="48dp"
+                        android:layout_marginStart="24dp"
                         android:visibility="gone"
                         app:layout_constraintTop_toBottomOf="@id/tv_transactions_today"/>
 
@@ -362,11 +451,13 @@
         android:layout_height="wrap_content"
         android:background="@color/cardBackground"
         app:elevation="16dp"
-        app:itemIconTint="@color/colorPrimary"
         app:labelVisibilityMode="unlabeled"
+        app:itemRippleColor="@null"
+        app:itemBackground="@drawable/nav_item_bg"
+        app:itemIconTint="@drawable/nav_icon_tint"
+        app:menu="@menu/bottom_nav_menu"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:menu="@menu/bottom_nav_menu" />
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

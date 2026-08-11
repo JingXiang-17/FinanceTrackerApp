@@ -19,8 +19,11 @@ import com.luminous.financetracker.ui.adapter.TimeBudgetAdapter;
 import com.luminous.financetracker.ui.dashboard.DashboardActivity;
 import com.luminous.financetracker.ui.settings.SettingsActivity;
 import com.luminous.financetracker.ui.statistics.StatisticsActivity;
+import com.luminous.financetracker.util.Constants;
 import com.luminous.financetracker.util.TimeUtils;
 import com.luminous.financetracker.viewmodel.TransactionViewModel;
+
+import java.util.Map;
 
 public class BudgetActivity extends AppCompatActivity {
 
@@ -33,48 +36,32 @@ public class BudgetActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_budget);
 
-        // 1. Initialize SharedPreferences to store the target limits
-        sharedPreferences = getSharedPreferences("BudgetPrefs", MODE_PRIVATE);
+        sharedPreferences = getSharedPreferences(Constants.PREF_NAME, MODE_PRIVATE);
 
-        // 2. Setup the RecyclerView and Adapter
         RecyclerView rvTimeBudgets = findViewById(R.id.rv_time_budgets);
         rvTimeBudgets.setLayoutManager(new LinearLayoutManager(this));
 
         timeBudgetAdapter = new TimeBudgetAdapter();
         rvTimeBudgets.setAdapter(timeBudgetAdapter);
 
-        // Load saved limits (Default: 30 Daily, 200 Weekly, 1000 Monthly)
-        timeBudgetAdapter.updateLimit(0, sharedPreferences.getFloat("limit_0", 30.0f));
-        timeBudgetAdapter.updateLimit(1, sharedPreferences.getFloat("limit_1", 200.0f));
-        timeBudgetAdapter.updateLimit(2, sharedPreferences.getFloat("limit_2", 1000.0f));
+        timeBudgetAdapter.updateLimit(0, sharedPreferences.getFloat(Constants.KEY_LIMIT_0, 30.0f));
+        timeBudgetAdapter.updateLimit(1, sharedPreferences.getFloat(Constants.KEY_LIMIT_1, 1000.0f));
 
-        // 3. Handle Edit Clicks - Wired to the NEW auto-calc dialog
-        timeBudgetAdapter.setOnBudgetEditListener((position, title, currentLimit) -> {
-            showEditBudgetDialog(position, title, currentLimit);
-        });
+        timeBudgetAdapter.setOnBudgetEditListener((position, title, currentLimit) ->
+                showEditBudgetDialog(position, title, currentLimit));
 
-        // 4. Initialize ViewModel and observe LiveData
         transactionViewModel = new ViewModelProvider(this).get(TransactionViewModel.class);
 
-        // Observe Daily (Position 0)
         transactionViewModel.getTotalSpentSince(TimeUtils.getStartOfDay()).observe(this, dailyTotal -> {
             double spentToday = (dailyTotal != null) ? dailyTotal : 0.0;
             timeBudgetAdapter.updateSpentAmount(0, spentToday);
         });
 
-        // Observe Weekly (Position 1)
-        transactionViewModel.getTotalSpentSince(TimeUtils.getStartOfWeek()).observe(this, weeklyTotal -> {
-            double spentThisWeek = (weeklyTotal != null) ? weeklyTotal : 0.0;
-            timeBudgetAdapter.updateSpentAmount(1, spentThisWeek);
-        });
-
-        // Observe Monthly (Position 2)
         transactionViewModel.getTotalSpentSince(TimeUtils.getStartOfMonth()).observe(this, monthlyTotal -> {
             double spentThisMonth = (monthlyTotal != null) ? monthlyTotal : 0.0;
-            timeBudgetAdapter.updateSpentAmount(2, spentThisMonth);
+            timeBudgetAdapter.updateSpentAmount(1, spentThisMonth);
         });
 
-        // 5. Sticky Bottom Navigation
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         bottomNavigationView.setSelectedItemId(R.id.nav_budget);
 
@@ -100,7 +87,6 @@ public class BudgetActivity extends AppCompatActivity {
         });
     }
 
-    // --- Helper Method to Edit Limits (Now with Auto-Calc Logic) ---
     private void showEditBudgetDialog(int position, String title, double currentLimit) {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
@@ -111,65 +97,90 @@ public class BudgetActivity extends AppCompatActivity {
         input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL);
         layout.addView(input);
 
-        // Auto-Calculate Checkbox
         final CheckBox autoCalcCheckBox = new CheckBox(this);
         autoCalcCheckBox.setText("Auto-calculate related budgets");
 
-        // Remember the user's preference for this checkbox (default to true)
-        boolean isAutoCalc = sharedPreferences.getBoolean("auto_calc_budgets", true);
+        boolean isAutoCalc = sharedPreferences.getBoolean(Constants.KEY_AUTO_CALC_BUDGETS, true);
         autoCalcCheckBox.setChecked(isAutoCalc);
         layout.addView(autoCalcCheckBox);
 
-        new AlertDialog.Builder(this) // Uses androidx.appcompat.app.AlertDialog
+        new AlertDialog.Builder(this)
                 .setTitle("Edit " + title)
                 .setView(layout)
                 .setPositiveButton("Save", (dialog, which) -> {
                     String valueStr = input.getText().toString().trim();
-                    if (!valueStr.isEmpty()) {
+                    if (valueStr.isEmpty()) {
+                        return;
+                    }
+
+                    try {
                         float newLimit = Float.parseFloat(valueStr);
                         if (newLimit <= 0) {
                             Toast.makeText(this, "Budget must be greater than 0", Toast.LENGTH_SHORT).show();
                             return;
                         }
+
                         boolean autoCalc = autoCalcCheckBox.isChecked();
-
                         SharedPreferences.Editor editor = sharedPreferences.edit();
-
-                        // Save the checkbox state so the app remembers their choice next time
-                        editor.putBoolean("auto_calc_budgets", autoCalc);
+                        editor.putBoolean(Constants.KEY_AUTO_CALC_BUDGETS, autoCalc);
 
                         if (autoCalc) {
-                            // Calculate based on which budget they clicked
                             if (position == 0) {
-                                // Edited Daily
-                                editor.putFloat("limit_0", newLimit);
-                                editor.putFloat("limit_1", newLimit * 7);
-                                editor.putFloat("limit_2", newLimit * 28);
+                                editor.putFloat(Constants.KEY_LIMIT_0, newLimit);
+                                editor.putFloat(Constants.KEY_LIMIT_1, newLimit * 30);
                             } else if (position == 1) {
-                                // Edited Weekly
-                                editor.putFloat("limit_0", newLimit / 7);
-                                editor.putFloat("limit_1", newLimit);
-                                editor.putFloat("limit_2", newLimit * 4);
-                            } else if (position == 2) {
-                                // Edited Monthly
-                                editor.putFloat("limit_0", newLimit / 28);
-                                editor.putFloat("limit_1", newLimit / 4);
-                                editor.putFloat("limit_2", newLimit);
+                                editor.putFloat(Constants.KEY_LIMIT_0, newLimit / 30);
+                                editor.putFloat(Constants.KEY_LIMIT_1, newLimit);
                             }
                         } else {
-                            // Auto-calc is OFF: Only update the specific budget they edited
-                            editor.putFloat("limit_" + position, newLimit);
+                            String targetKey = (position == 0) ? Constants.KEY_LIMIT_0 : Constants.KEY_LIMIT_1;
+                            editor.putFloat(targetKey, newLimit);
                         }
 
+                        invalidateCurrentPeriodNotifications(editor);
                         editor.apply();
 
-                        // Refresh the UI instantly for all three budgets
-                        timeBudgetAdapter.updateLimit(0, sharedPreferences.getFloat("limit_0", 30.0f));
-                        timeBudgetAdapter.updateLimit(1, sharedPreferences.getFloat("limit_1", 200.0f));
-                        timeBudgetAdapter.updateLimit(2, sharedPreferences.getFloat("limit_2", 1000.0f));
+                        timeBudgetAdapter.updateLimit(0, sharedPreferences.getFloat(Constants.KEY_LIMIT_0, 30.0f));
+                        timeBudgetAdapter.updateLimit(1, sharedPreferences.getFloat(Constants.KEY_LIMIT_1, 1000.0f));
+
+                    } catch (NumberFormatException e) {
+                        Toast.makeText(this, "Please enter a valid amount.", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .setNegativeButton("Cancel", (dialog, which) -> dialog.cancel())
                 .show();
+    }
+
+    /**
+     * Clears the 80%/100% "already notified" flags for the CURRENT day and month only,
+     * so a changed limit is re-evaluated against fresh thresholds this period.
+     * Past periods' flags are left alone — BudgetAlertManager.cleanupOldPrefs() is
+     * responsible for pruning those once their period has ended.
+     */
+    private void invalidateCurrentPeriodNotifications(SharedPreferences.Editor editor) {
+        long startOfDay = TimeUtils.getStartOfDay();
+        long startOfMonth = TimeUtils.getStartOfMonth();
+
+        String dailyPrefix = Constants.PERIOD_DAILY + "_";
+        String monthlyPrefix = Constants.PERIOD_MONTHLY + "_";
+
+        for (Map.Entry<String, ?> entry : sharedPreferences.getAll().entrySet()) {
+            String key = entry.getKey();
+            if (!key.contains("_notified_")) {
+                continue;
+            }
+
+            try {
+                long timestamp = Long.parseLong(key.substring(key.lastIndexOf("_") + 1));
+
+                if (key.startsWith(dailyPrefix) && timestamp == startOfDay) {
+                    editor.remove(key);
+                } else if (key.startsWith(monthlyPrefix) && timestamp == startOfMonth) {
+                    editor.remove(key);
+                }
+            } catch (NumberFormatException e) {
+                // Ignore malformed keys
+            }
+        }
     }
 }

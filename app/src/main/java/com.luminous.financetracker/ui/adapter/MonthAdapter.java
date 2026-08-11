@@ -1,11 +1,11 @@
 package com.luminous.financetracker.ui.adapter;
 
-import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.card.MaterialCardView;
 import com.luminous.financetracker.R;
@@ -14,14 +14,15 @@ import java.util.Calendar;
 public class MonthAdapter extends RecyclerView.Adapter<MonthAdapter.ViewHolder> {
 
     private final String[] months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-    private final int currentYear = Calendar.getInstance().get(Calendar.YEAR);
 
-    // Default to the current real-world month (0 = Jan, 11 = Dec)
+    // The adapter dictates its own time context
+    private final int currentYear = Calendar.getInstance().get(Calendar.YEAR);
     private int selectedPosition = Calendar.getInstance().get(Calendar.MONTH);
     private OnMonthClickListener listener;
 
+    // FIX: Upgraded signature to strictly enforce both year and month context
     public interface OnMonthClickListener {
-        void onMonthClick(int monthIndex);
+        void onMonthClick(int year, int monthIndex);
     }
 
     public MonthAdapter(OnMonthClickListener listener) {
@@ -38,28 +39,31 @@ public class MonthAdapter extends RecyclerView.Adapter<MonthAdapter.ViewHolder> 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         holder.tvMonth.setText(months[position]);
-        holder.tvYear.setText(String.valueOf(currentYear)); // Set the year dynamically
+        holder.tvYear.setText(String.valueOf(currentYear));
 
-        // Highlight the selected month using the MaterialCardView
-        if (selectedPosition == position) {
-            holder.cardBg.setCardBackgroundColor(Color.parseColor("#9A56B9")); // Purple background
-            holder.tvMonth.setTextColor(Color.parseColor("#FFFFFF")); // White text
+        if (position == selectedPosition) {
+            holder.cardBg.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.cardBgActive));
+            holder.tvMonth.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.textMonthActive));
+            holder.tvYear.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.textYearActive));
         } else {
-            holder.cardBg.setCardBackgroundColor(Color.parseColor("#E0E0E0")); // Light Gray background
-            holder.tvMonth.setTextColor(Color.parseColor("#888888")); // Dark Gray text
+            holder.cardBg.setCardBackgroundColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.cardBgInactive));
+            holder.tvMonth.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.textMonthInactive));
+            holder.tvYear.setTextColor(ContextCompat.getColor(holder.itemView.getContext(), R.color.textMonthInactive));
         }
 
         holder.itemView.setOnClickListener(v -> {
-            int previousItem = selectedPosition;
-            selectedPosition = position;
+            int currentPosition = holder.getAdapterPosition();
+            if (currentPosition == RecyclerView.NO_POSITION) return;
 
-            // Re-render just the two items that changed state
+            int previousItem = selectedPosition;
+            selectedPosition = currentPosition;
+
             notifyItemChanged(previousItem);
             notifyItemChanged(selectedPosition);
 
-            // Tell the Activity to update the chart
             if (listener != null) {
-                listener.onMonthClick(selectedPosition);
+                // FIX: Pass the absolute year alongside the index to prevent Activity guesswork
+                listener.onMonthClick(currentYear, selectedPosition);
             }
         });
     }
@@ -69,13 +73,25 @@ public class MonthAdapter extends RecyclerView.Adapter<MonthAdapter.ViewHolder> 
         return months.length;
     }
 
+    public void setSelectedIndex(int newIndex) {
+        int previousIndex = selectedPosition;
+        selectedPosition = newIndex;
+
+        if (previousIndex != -1) {
+            notifyItemChanged(previousIndex);
+        }
+
+        if (selectedPosition != -1) {
+            notifyItemChanged(selectedPosition);
+        }
+    }
+
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvMonth, tvYear;
         MaterialCardView cardBg;
 
         ViewHolder(View itemView) {
             super(itemView);
-            // Mapped to your new XML IDs
             tvMonth = itemView.findViewById(R.id.tv_month_name);
             tvYear = itemView.findViewById(R.id.tv_month_year);
             cardBg = itemView.findViewById(R.id.card_month_bg);

@@ -1,40 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/card_month_bg"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_marginEnd="12dp"
-    android:gravity="center"
-    android:orientation="vertical">
+    android:layout_marginVertical="4dp"
+    app:cardBackgroundColor="@color/cardBackground"
+    app:cardCornerRadius="24dp"
+    app:cardElevation="0dp">
 
-    <TextView
-        android:id="@+id/tv_month_year"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="4dp"
-        android:textColor="@color/textSecondary"
-        android:textSize="12sp"
-        tools:text="2023" />
-
-    <com.google.android.material.card.MaterialCardView
-        android:id="@+id/card_month_bg"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        app:cardBackgroundColor="@color/colorPrimary"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="0dp">
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="12dp">
 
         <TextView
             android:id="@+id/tv_month_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:textColor="@color/textOnPrimary"
+            android:textColor="@color/textPrimary"
             android:textSize="16sp"
             android:textStyle="bold"
-            tools:text="Jan" />
-    </com.google.android.material.card.MaterialCardView>
+            tools:text="Aug" />
 
-</LinearLayout>
+        <TextView
+            android:id="@+id/tv_month_year"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="@color/textSecondary"
+            android:textSize="12sp"
+            tools:text="2026" />
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

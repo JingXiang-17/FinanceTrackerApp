@@ -11,15 +11,21 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.luminous.financetracker.R;
 import com.luminous.financetracker.data.entity.Transaction;
 import com.luminous.financetracker.util.TimeUtils;
 
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 
 public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdapter.TransactionHolder> {
 
     private OnItemClickListener listener;
+
+    // FIX: Track expansion state independently by transaction ID to prevent UI collapse on LiveData re-emits
+    private final Set<Integer> expandedIds = new HashSet<>();
 
     public TransactionAdapter() {
         super(DIFF_CALLBACK);
@@ -33,9 +39,9 @@ public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdap
 
         @Override
         public boolean areContentsTheSame(@NonNull Transaction oldItem, @NonNull Transaction newItem) {
-            // Include all relevant fields to ensure smooth UI updates when edited
+            // FIX: Added timestamp to ensure DiffUtil re-renders if the date/time changes
             return oldItem.getAmount() == newItem.getAmount() &&
-                    oldItem.isExpanded() == newItem.isExpanded() &&
+                    oldItem.getTimestamp() == newItem.getTimestamp() &&
                     Objects.equals(oldItem.getText(), newItem.getText()) &&
                     Objects.equals(oldItem.getCategory(), newItem.getCategory()) &&
                     Objects.equals(oldItem.getPaymentMethod(), newItem.getPaymentMethod()) &&
@@ -58,7 +64,6 @@ public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdap
         holder.tvTitle.setText(currentTransaction.getText());
         holder.tvAmount.setText(String.format("-RM %.2f", currentTransaction.getAmount()));
 
-        // Clarify labels for the expanded view based on our prior discussion
         holder.tvCategory.setText("Category: " + currentTransaction.getCategory());
         holder.tvPayment.setText("From: " + currentTransaction.getPaymentMethod());
         holder.tvMerchant.setText("To: " + currentTransaction.getMerchantName());
@@ -71,13 +76,18 @@ public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdap
             holder.tvNotes.setVisibility(View.GONE);
         }
 
-        // Toggle Expand/Collapse visibility
-        holder.layoutExpandedDetails.setVisibility(currentTransaction.isExpanded() ? View.VISIBLE : View.GONE);
+        // Check independent expansion tracking state
+        boolean isExpanded = expandedIds.contains(currentTransaction.getId());
+        holder.layoutExpandedDetails.setVisibility(isExpanded ? View.VISIBLE : View.GONE);
 
-        // Click header to expand
+        // Toggle Expand/Collapse visibility state securely
         holder.layoutHeader.setOnClickListener(v -> {
-            currentTransaction.setExpanded(!currentTransaction.isExpanded());
-            notifyItemChanged(position); // Triggers re-render for this specific item
+            if (expandedIds.contains(currentTransaction.getId())) {
+                expandedIds.remove(currentTransaction.getId());
+            } else {
+                expandedIds.add(currentTransaction.getId());
+            }
+            notifyItemChanged(position);
         });
     }
 
@@ -122,21 +132,18 @@ public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdap
             btnDelete.setOnClickListener(v -> {
                 int position = getAdapterPosition();
 
-                // Ensure the item still exists before doing anything
                 if (listener != null && position != RecyclerView.NO_POSITION) {
-
-                    // Launch the confirmation popup
-                    new com.google.android.material.dialog.MaterialAlertDialogBuilder(v.getContext())
+                    // Safe confirmation dialog prevents accidental deletions
+                    new MaterialAlertDialogBuilder(v.getContext())
                             .setTitle("Delete Transaction")
                             .setMessage("Are you sure you want to delete this transaction? This action cannot be undone.")
                             .setPositiveButton("Delete transaction", (dialog, which) -> {
-                                // They clicked Yes, so execute your original delete logic
-                                listener.onDeleteClick(getItem(position));
+                                Transaction target = getItem(position);
+                                // Clean up tracking set entry on delete
+                                expandedIds.remove(target.getId());
+                                listener.onDeleteClick(target);
                             })
-                            .setNegativeButton("Cancel", (dialog, which) -> {
-                                // They clicked Cancel, just close the popup
-                                dialog.dismiss();
-                            })
+                            .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
                             .show();
                 }
             });

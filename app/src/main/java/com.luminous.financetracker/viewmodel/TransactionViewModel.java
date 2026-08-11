@@ -4,32 +4,32 @@ import android.app.Application;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+
+import com.luminous.financetracker.data.database.FinanceDatabase;
 import com.luminous.financetracker.data.entity.Transaction;
-import com.luminous.financetracker.data.entity.Budget;
 import com.luminous.financetracker.repository.TransactionRepository;
+import com.luminous.financetracker.util.BudgetAlertManager;
+
 import java.util.List;
 
 public class TransactionViewModel extends AndroidViewModel {
 
-    private TransactionRepository repository;
-    private LiveData<List<Transaction>> allTransactions;
-    private LiveData<List<Budget>> budget;
+    private final TransactionRepository repository;
+    private final LiveData<List<Transaction>> allTransactions;
 
     public TransactionViewModel(@NonNull Application application) {
         super(application);
         repository = new TransactionRepository(application);
-        // Initialize your LiveData list of transactions here
         allTransactions = repository.getAllTransactions();
-        budget = repository.getBudget();
     }
 
-    // Expose methods for the UI to observe data or insert transactions
-    public LiveData<List<Transaction>> getAllTransactions() {
-        return allTransactions;
-    }
+    // --- WRITE OPERATIONS ---
 
     public void insert(Transaction transaction) {
-        repository.insert(transaction);
+        repository.insert(transaction, () -> {
+            FinanceDatabase db = FinanceDatabase.getDatabase(getApplication());
+            BudgetAlertManager.checkBudgets(getApplication(), db.transactionDao());
+        });
     }
 
     public void update(Transaction transaction) {
@@ -40,13 +40,24 @@ public class TransactionViewModel extends AndroidViewModel {
         repository.delete(transaction);
     }
 
-    // --- NEW: Time-based total queries ---
+    // --- READ OPERATIONS ---
+
+    public LiveData<List<Transaction>> getAllTransactions() {
+        return allTransactions;
+    }
+
+    // Returns variable spending only (For Budget bars/limits)
+    public LiveData<Double> getTotalSpent(long startDate, long endDate) {
+        return repository.getTotalSpent(startDate, endDate);
+    }
+
+    // Returns variable spending only (For Budget bars/limits)
     public LiveData<Double> getTotalSpentSince(long startTimestamp) {
         return repository.getTotalSpentSince(startTimestamp);
     }
 
-    // --- Budget Methods ---
-    public LiveData<List<Budget>> getBudget() { return budget; }
-    public LiveData<Budget> getBudgetByCategory(String categoryName) { return repository.getBudgetByCategory(categoryName); }
-    public void insertBudget(Budget newBudget) { repository.insertBudget(newBudget); }
+    // Returns ALL spending (For Statistics/Pie Charts)
+    public LiveData<Double> getAbsoluteTotalSpent(long startDate, long endDate) {
+        return repository.getAbsoluteTotalSpent(startDate, endDate);
+    }
 }

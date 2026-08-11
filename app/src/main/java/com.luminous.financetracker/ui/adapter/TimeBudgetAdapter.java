@@ -12,9 +12,9 @@ import com.luminous.financetracker.R;
 
 public class TimeBudgetAdapter extends RecyclerView.Adapter<TimeBudgetAdapter.BudgetHolder> {
 
-    private final String[] titles = {"Daily budget", "Weekly budget", "Monthly budget"};
-    private double[] spentAmounts = {0.0, 0.0, 0.0};
-    private double[] budgetLimits = {30.0, 200.0, 1000.0};
+    private final String[] titles = {"Daily budget", "Monthly budget"};
+    private double[] spentAmounts = {0.0, 0.0};
+    private double[] budgetLimits = {30.0, 1000.0};
 
     // --- NEW: Edit Click Listener ---
     private OnBudgetEditListener listener;
@@ -64,7 +64,7 @@ public class TimeBudgetAdapter extends RecyclerView.Adapter<TimeBudgetAdapter.Bu
 
     @Override
     public int getItemCount() {
-        return 3;
+        return 2;
     }
 
     class BudgetHolder extends RecyclerView.ViewHolder {

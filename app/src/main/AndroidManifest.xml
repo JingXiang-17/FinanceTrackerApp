@@ -6,7 +6,7 @@
         android:name=".FinanceApp" 
         android:theme="@style/Theme.MyApp"
         android:allowBackup="true"
-        android:label="FinanceTracker"
+        android:label="Meowney Track"
         android:icon="@mipmap/meowneytrack"
         android:roundIcon="@mipmap/meowneytrack_round">
 

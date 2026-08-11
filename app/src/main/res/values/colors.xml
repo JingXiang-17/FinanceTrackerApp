@@ -12,6 +12,16 @@
     <!-- Text Colors -->
     <color name="textPrimary">#000000</color>
     <color name="textSecondary">#212121</color>
+    <color name="textPrimaryCat">#000000</color>
+    <color name="textSecondaryCat">#212121</color>
     <color name="textHighlight">#2648A4</color>
     <color name="textOnPrimary">#FFFFFF</color>
+
+    <!-- Month Cards Colors -->
+    <color name="cardBgActive">#D3D3D3</color>
+    <color name="cardBgInactive">#4B4B4B</color>
+    <color name="textMonthActive">#6D3E85</color>
+    <color name="textMonthInactive">#FFFFFF</color>
+    <color name="textYearActive">#212121</color>
+    <color name="textYearInactive">#FFFFFF</color>
 </resources>

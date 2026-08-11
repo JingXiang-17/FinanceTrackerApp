@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.card.MaterialCardView;
 import com.luminous.financetracker.R;
+import com.luminous.financetracker.util.Constants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,15 +47,11 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
         if (amount == 0.0) {
             // Empty Phase: Turn the card Light Grey
             holder.cardContainer.setCardBackgroundColor(Color.parseColor("#E0E0E0"));
-
-            // Optional: Dim the icon to match the greyed-out state
             holder.ivIcon.setColorFilter(Color.parseColor("#A0A0A0"));
         } else {
-            // Active Phase: Assign the correct vibrant color based on the category name
+            // Active Phase: Assign the correct vibrant color sourced from Constants
             int categoryColor = getCategoryColor(categoryName);
             holder.cardContainer.setCardBackgroundColor(categoryColor);
-
-            // Clear any color filters on the icon so it looks normal
             holder.ivIcon.clearColorFilter();
         }
     }
@@ -64,38 +61,35 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.ViewHo
         return categoryList.size();
     }
 
-    // Maps your categories to the exact same colors used in your Pie Chart
+    // FIX: Unified category color mapping using Constants to prevent multi-file drift
     private int getCategoryColor(String categoryName) {
-        switch (categoryName) {
-            case "Dining":
-                return Color.parseColor("#D34B56"); // Red
-            case "Transport":
-                return Color.parseColor("#FFB12B"); // Orange-Yellow
-            case "Entertainment":
-                return Color.parseColor("#5BB1EB"); // Blue
-            case "Shopping":
-                return Color.parseColor("#EB73D3"); // Pink
-            case "Others":
-                return Color.parseColor("#53CF95"); // Green
-            default:
-                return Color.parseColor("#B4B4B4"); // Fallback Grey
+        if (Constants.CATEGORY_FIXED.equals(categoryName)) {
+            return Color.parseColor("#A498FA"); // Light Purple
+        } else if (Constants.CATEGORY_DINING.equals(categoryName)) {
+            return Color.parseColor("#FC5B68"); // Red
+        } else if (Constants.CATEGORY_TRANSPORT.equals(categoryName)) {
+            return Color.parseColor("#FFB12B"); // Orange-Yellow
+        } else if (Constants.CATEGORY_ENTERTAINMENT.equals(categoryName)) {
+            return Color.parseColor("#5BB1EB"); // Blue
+        } else if (Constants.CATEGORY_SHOPPING.equals(categoryName)) {
+            return Color.parseColor("#EB73D3"); // Pink
+        } else if (Constants.CATEGORY_OTHERS.equals(categoryName)) {
+            return Color.parseColor("#53CF95"); // Green
+        } else {
+            return Color.parseColor("#B4B4B4"); // Fallback Grey
         }
     }
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         TextView tvName, tvAmount;
         ImageView ivIcon;
-        MaterialCardView cardContainer; // Reference to the background card
+        MaterialCardView cardContainer;
 
         ViewHolder(View itemView) {
             super(itemView);
-            // Mapped to your existing XML IDs
             tvName = itemView.findViewById(R.id.tv_category_name);
             tvAmount = itemView.findViewById(R.id.tv_category_amount);
             ivIcon = itemView.findViewById(R.id.iv_category_icon);
-
-            // Assuming the root element of item_category.xml is a MaterialCardView.
-            // If it has a specific ID, change this to: itemView.findViewById(R.id.YOUR_CARD_ID);
             cardContainer = (MaterialCardView) itemView;
         }
     }
