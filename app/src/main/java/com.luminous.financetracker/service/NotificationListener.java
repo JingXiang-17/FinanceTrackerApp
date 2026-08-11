@@ -43,7 +43,7 @@ public class NotificationListener extends NotificationListenerService {
     );
 
     private static final Pattern CASH_IN_PATTERN = Pattern.compile(
-            "\\b(credited|ka-ching|refund|top up)\\b|" +
+            "\\b(credited|ka-ching|refund|top up|cash in|money received)\\b|" +
                     "\\b(received?)\\b.{1,30}\\bfrom\\b|" +
                     "\\bhas\\s+transferred\\b.{1,30}\\bto\\s+you\\b|" +
                     "\\bwas\\s+transferred\\b.{1,30}\\bto\\s+you\\b",
@@ -51,7 +51,7 @@ public class NotificationListener extends NotificationListenerService {
     );
 
     private static final Pattern EXPENSE_PATTERN = Pattern.compile(
-            "\\b(spend|spent|deducted|debited|not you|charged|transaction)\\b|" +
+            "\\b(spend|spent|payment|paid|deducted|debited|not you|charged|transaction)\\b|" +
                     "\\b(you( have)?( successfully)? transferred|payment|paid|successful.*transfer|your transfer)\\b.{1,50}\\bto\\b|" +
                     "\\btransfer.*successful\\b",
             Pattern.CASE_INSENSITIVE
@@ -62,9 +62,8 @@ public class NotificationListener extends NotificationListenerService {
             Pattern.CASE_INSENSITIVE
     );
 
-    // Captures everything after "to " until it hits a period, the word "on", "not you", or end of string
     private static final Pattern MERCHANT_PATTERN = Pattern.compile(
-            "\\bto\\s+([A-Za-z0-9\\s&\\*\\-]+?)(?=\\.|\\s+on\\b|\\s+not you|$)",
+            "\\b(?:to|for)\\s+([A-Za-z0-9\\s&\\*\\-]+?)(?=\\.|\\s+on\\b|\\s+not you|$)",
             Pattern.CASE_INSENSITIVE
     );
 

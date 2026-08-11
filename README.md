@@ -109,4 +109,8 @@ This project is actively evolving. Core stable features are documented above in 
 
 #### 4. Deletions
 - Removed `BudgetDao.java` and `Budget.java` (replaced by the current streamlined budget system).
-- Temporarily removed Dark Mode to reserve for a future release roadmap.
+- Temporarily removed Dark Mode to reserve for a future release roadmap.    
+
+### v1.1.1    
+#### 1. Fixed bugs
+- Fixed the logic of `NotificationListener.java` (Expense, Cash in and Merchant regex)
