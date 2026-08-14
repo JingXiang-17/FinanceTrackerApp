@@ -143,9 +143,12 @@ public class DashboardActivity extends AppCompatActivity {
             @Override
             public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
                 int position = viewHolder.getAdapterPosition();
-                Transaction transactionToDelete = transactionAdapter.getCurrentList().get(position);
-                transactionViewModel.delete(transactionToDelete);
-                Toast.makeText(DashboardActivity.this, "Transaction deleted", Toast.LENGTH_SHORT).show();
+
+                // Call the unified method from the adapter!
+                transactionAdapter.confirmDeletion(position, DashboardActivity.this, () -> {
+                    // This Runnable executes if the user cancels, bouncing the item back
+                    transactionAdapter.notifyItemChanged(position);
+                });
             }
         };
         new ItemTouchHelper(swipeCallback).attachToRecyclerView(rvTransactions);
@@ -262,7 +265,7 @@ public class DashboardActivity extends AppCompatActivity {
             tvEmptyTransactions.setVisibility(View.GONE);
             rvTransactions.setVisibility(View.VISIBLE);
         }
-
+        todayList.sort((t1, t2) -> Long.compare(t2.getTimestamp(), t1.getTimestamp()));
         transactionAdapter.submitList(todayList);
         categoryAdapter.setCategories(categoryTotals);
 
@@ -403,6 +406,7 @@ public class DashboardActivity extends AppCompatActivity {
         popupRecyclerView.setLayoutParams(params);
 
         TransactionAdapter popupAdapter = new TransactionAdapter();
+        allTransactions.sort((t1, t2) -> Long.compare(t2.getTimestamp(), t1.getTimestamp()));
         popupAdapter.submitList(allTransactions);
         popupRecyclerView.setAdapter(popupAdapter);
         layout.addView(popupRecyclerView);

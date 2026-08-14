@@ -20,6 +20,10 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+import android.content.Context;
+import android.graphics.Color;
+import androidx.appcompat.app.AlertDialog;
+
 public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdapter.TransactionHolder> {
 
     private OnItemClickListener listener;
@@ -131,22 +135,37 @@ public class TransactionAdapter extends ListAdapter<Transaction, TransactionAdap
 
             btnDelete.setOnClickListener(v -> {
                 int position = getAdapterPosition();
-
-                if (listener != null && position != RecyclerView.NO_POSITION) {
-                    // Safe confirmation dialog prevents accidental deletions
-                    new MaterialAlertDialogBuilder(v.getContext())
-                            .setTitle("Delete Transaction")
-                            .setMessage("Are you sure you want to delete this transaction? This action cannot be undone.")
-                            .setPositiveButton("Delete transaction", (dialog, which) -> {
-                                Transaction target = getItem(position);
-                                // Clean up tracking set entry on delete
-                                expandedIds.remove(target.getId());
-                                listener.onDeleteClick(target);
-                            })
-                            .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
-                            .show();
+                if (position != RecyclerView.NO_POSITION) {
+                    // Call the unified method. Passing null for Runnable since button clicks don't need a bounce-back
+                    confirmDeletion(position, v.getContext(), null);
                 }
             });
         }
+    }
+
+    // Unified deletion method for both button clicks and swipes
+    public void confirmDeletion(int position, Context context, Runnable onCancel) {
+        AlertDialog dialog = new MaterialAlertDialogBuilder(context)
+                .setTitle("Delete Transaction")
+                .setMessage("Are you sure you want to delete this transaction? This action cannot be undone.")
+                .setPositiveButton("Delete transaction", (d, which) -> {
+                    Transaction target = getItem(position);
+                    expandedIds.remove(target.getId());
+                    if (listener != null) {
+                        listener.onDeleteClick(target);
+                    }
+                })
+                .setNegativeButton("Cancel", (d, which) -> {
+                    d.dismiss();
+                    if (onCancel != null) onCancel.run();
+                })
+                .setOnCancelListener(d -> {
+                    if (onCancel != null) onCancel.run();
+                })
+                .create();
+
+        // You must call show() before you can access and modify the buttons
+        dialog.show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setTextColor(Color.RED);
     }
 }

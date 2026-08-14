@@ -4,10 +4,6 @@ An offline-first, privacy-focused Android finance tracker built with Java, XML, 
 
 This app is being developed for personal use, but feel free to fork it if you want.
 
-All version of apks are stored in `App version` directory. Feel free to download and use.
-
-Might need to bypass Play Protect and some Android security. Don't worry, this is not a malicious app. I don't have such ability to steal your information because I can't even retreieve mine. The app only lives in your local storage. No cloud, no AI API keys, not even need WiFi.
-
 ---
 
 ## Quick Navigation
@@ -118,3 +114,12 @@ This project is actively evolving. Core stable features are documented above in 
 ### v1.1.1    
 #### 1. Fixed bugs
 - Fixed the logic of `NotificationListener.java` (Expense, Cash in and Merchant regex)
+
+### v1.1.2
+#### 1. Feature refinement
+- Refine the logic of `NotificationListener.java` to support both MYR and RM prefix to log expense
+- Added deletion confirmation in swipe-to-delete in Dashboard page
+- Fixed `NotificationListener.java` Cash in regex
+#### 2. Changes in UI
+- Change the transactions display, from top to bottom, follow descending timestamp (recent to old)
+- Change "Delete transaction" text color from default to red

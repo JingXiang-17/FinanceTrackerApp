@@ -44,12 +44,11 @@ public class NotificationListener extends NotificationListenerService {
 
     private static final Pattern CASH_IN_PATTERN = Pattern.compile(
             "\\b(credited|ka-ching|refund|top up|cash in|money received)\\b|" +
-                    "\\b(received?)\\b.{1,30}\\bfrom\\b|" +
+                    "\\b(received?)\\b.{1,30}\\b(from|into|to)\\b|" +
                     "\\bhas\\s+transferred\\b.{1,30}\\bto\\s+you\\b|" +
                     "\\bwas\\s+transferred\\b.{1,30}\\bto\\s+you\\b",
             Pattern.CASE_INSENSITIVE
     );
-
     private static final Pattern EXPENSE_PATTERN = Pattern.compile(
             "\\b(spend|spent|payment|paid|deducted|debited|not you|charged|transaction)\\b|" +
                     "\\b(you( have)?( successfully)? transferred|payment|paid|successful.*transfer|your transfer)\\b.{1,50}\\bto\\b|" +
@@ -58,7 +57,7 @@ public class NotificationListener extends NotificationListenerService {
     );
 
     private static final Pattern AMOUNT_PATTERN = Pattern.compile(
-            "rm\\s?(\\d+\\.\\d{2})",
+            "(?:rm|myr)\\s?(\\d+\\.\\d{2})",
             Pattern.CASE_INSENSITIVE
     );
 
