@@ -1,6 +1,8 @@
 package com.luminous.financetracker.ui.settings;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,19 +14,23 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.FileProvider;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.luminous.financetracker.R;
 import com.luminous.financetracker.data.entity.Transaction;
 import com.luminous.financetracker.ui.budget.BudgetActivity;
 import com.luminous.financetracker.ui.dashboard.DashboardActivity;
 import com.luminous.financetracker.ui.statistics.StatisticsActivity;
+import com.luminous.financetracker.util.Constants;
 import com.luminous.financetracker.viewmodel.TransactionViewModel;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -59,6 +65,7 @@ public class SettingsActivity extends AppCompatActivity {
         progressSync = findViewById(R.id.progress_sync);
 
         setupDataManagement();
+        setupMlDataCollection();
         setupBottomNavigation();
     }
 
@@ -110,6 +117,58 @@ public class SettingsActivity extends AppCompatActivity {
         });
     }
 
+    // --- SETUP: ML DATA COLLECTION (BETA) ---
+    private void setupMlDataCollection() {
+        View toggleLogging = findViewById(R.id.toggle_logging_financial_details);
+        View btnExportMl = findViewById(R.id.btn_export_csv);
+        View mlSectionHeader = findViewById(R.id.tv_ml_section_header); // If you have a section header ID
+
+        // If this is the Production APK, hide the beta features entirely and exit
+        if (!getPackageName().endsWith(".beta")) {
+            if (toggleLogging != null) toggleLogging.setVisibility(View.GONE);
+            if (btnExportMl != null) btnExportMl.setVisibility(View.GONE);
+            if (mlSectionHeader != null) mlSectionHeader.setVisibility(View.GONE);
+            return;
+        }
+
+        // Only runs if IS_BETA is true
+        if (toggleLogging instanceof SwitchMaterial) {
+            SwitchMaterial switchToggle = (SwitchMaterial) toggleLogging;
+            SharedPreferences prefs = getSharedPreferences(Constants.PREF_NAME, MODE_PRIVATE);
+
+            switchToggle.setChecked(prefs.getBoolean("allow_logging_financial_details", false));
+            switchToggle.setOnCheckedChangeListener((buttonView, isChecked) -> {
+                prefs.edit().putBoolean("allow_logging_financial_details", isChecked).apply();
+                String status = isChecked ? "Enabled" : "Disabled";
+                Toast.makeText(this, "ML Dataset Logging " + status, Toast.LENGTH_SHORT).show();
+            });
+        }
+
+        if (btnExportMl != null) {
+            btnExportMl.setOnClickListener(v -> {
+                File csvFile = new File(getExternalFilesDir(null), "ml_training_data.csv");
+
+                if (csvFile.exists()) {
+                    Intent intent = new Intent(Intent.ACTION_SEND);
+                    intent.setType("text/csv");
+
+                    Uri uri = FileProvider.getUriForFile(
+                            this,
+                            getPackageName() + ".fileprovider",
+                            csvFile
+                    );
+
+                    intent.putExtra(Intent.EXTRA_STREAM, uri);
+                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                    startActivity(Intent.createChooser(intent, "Export ML Training Data"));
+                } else {
+                    Toast.makeText(this, "No financial data collected yet!", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+
     // --- SETUP: DARK MODE ---
     // is currently commented out due to lazy to think of dark mode color palette
     /*private void setupDarkModeToggle() {
@@ -127,6 +186,7 @@ public class SettingsActivity extends AppCompatActivity {
             prefs.edit().putInt("theme_mode", newMode).apply();
         });
     }*/
+
     private void setupBottomNavigation() {
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         bottomNavigationView.setSelectedItemId(R.id.nav_settings);

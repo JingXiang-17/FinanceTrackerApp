@@ -6,12 +6,28 @@ android {
     namespace 'com.luminous.financetracker'
     compileSdk 34
 
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId "com.luminous.financetracker"
         minSdk 24
         targetSdk 34
         versionCode 1
         versionName "1.0"
+    }
+
+    flavorDimensions = ["version"]
+    productFlavors {
+        beta {
+            dimension "version"
+            applicationIdSuffix ".beta"
+            versionNameSuffix "-beta"
+        }
+        production {
+            dimension "version"
+        }
     }
 
     compileOptions {

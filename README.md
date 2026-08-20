@@ -127,3 +127,7 @@ This project is actively evolving. Core stable features are documented above in 
 #### 2. Changes in UI
 - Change the transactions display, from top to bottom, follow descending timestamp (recent to old)
 - Change "Delete transaction" text color from default to red
+
+### Beta version corresponding to v1.1.2
+- Saved in App version beta directory, those apk containing feature that logs my financial notifications, just for my personal ml use.
+- I won't receive any logs of your financial details btw so no worries.

@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
-        android:name=".FinanceApp" 
-        android:theme="@style/Theme.MyApp"
+        android:name=".FinanceApp"
         android:allowBackup="true"
-        android:label="Meowney Track"
         android:icon="@mipmap/meowneytrack"
-        android:roundIcon="@mipmap/meowneytrack_round">
+        android:label="Meowney Track"
+        android:roundIcon="@mipmap/meowneytrack_round"
+        android:theme="@style/Theme.MyApp">
 
         <!-- The service must be INSIDE the application block -->
         <service
             android:name=".service.NotificationListener"
+            android:exported="true"
             android:label="Finance Tracker Auto-Logger"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
-            android:exported="true">
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
             </intent-filter>
@@ -27,14 +28,29 @@
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
+        </activity> <!-- Other Activities -->
+        <activity
+            android:name=".ui.budget.BudgetActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.statistics.StatisticsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.settings.SettingsActivity"
+            android:exported="false" />
 
-        <!-- Other Activities -->
-        <activity android:name=".ui.budget.BudgetActivity" android:exported="false" />
-        <activity android:name=".ui.statistics.StatisticsActivity" android:exported="false" />
-        <activity android:name=".ui.settings.SettingsActivity" android:exported="false" />
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

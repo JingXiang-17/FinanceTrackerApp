@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- This grants permission to share files from getExternalFilesDir() -->
+    <external-files-path name="my_ml_data" path="." />
+</paths>
