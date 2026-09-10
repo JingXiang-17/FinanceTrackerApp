@@ -1,11 +1,16 @@
 package com.luminous.financetracker.service;
 
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
+
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import com.luminous.financetracker.util.Constants;
 
@@ -13,15 +18,24 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.Objects;
 import java.util.regex.Pattern;
+
+import com.luminous.financetracker.ui.dashboard.DashboardActivity;
+import com.luminous.financetracker.R;
 
 public class NotificationListenerBeta extends NotificationListenerService {
 
     private static final String TAG = "NotificationBeta";
     private static final String CSV_FILE_NAME = "ml_training_data.csv";
 
+    private com.luminous.financetracker.repository.TransactionRepository repository;
+
     // Broad trigger to catch ANYTHING involving Malaysian Ringgit
-    private static final Pattern RM_PATTERN = Pattern.compile("\\b(rm|myr)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern RM_PATTERN = Pattern.compile(
+            "\\b(?:rm|myr)\\s*(\\d+(?:\\.\\d{1,2})?)",
+            Pattern.CASE_INSENSITIVE
+    );
 
     // Reuse your existing patterns to pre-label the dataset!
     private static final Pattern PROMO_PATTERN = Pattern.compile(
@@ -44,6 +58,12 @@ public class NotificationListenerBeta extends NotificationListenerService {
             Pattern.CASE_INSENSITIVE
     );
 
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        // This spins up the database connection when the service starts
+        repository = new com.luminous.financetracker.repository.TransactionRepository(getApplication());
+    }
     @Override
     public void onNotificationPosted(StatusBarNotification sbn) {
         Log.d("NotificationBeta", "HEARTBEAT: Service is alive and saw a notification!");
@@ -86,6 +106,70 @@ public class NotificationListenerBeta extends NotificationListenerService {
             String category = determineCategory(lowerText);
 
             writeToCsv(cleanText, category);
+
+            // --- REFACTORED: DATABASE INSERTION & SMART NOTIFICATION ---
+            if ("EXPENSE".equals(category)) {
+                java.util.regex.Pattern extractAmountPattern = java.util.regex.Pattern.compile("\\b(?:rm|myr)\\s*(\\d+(?:\\.\\d{1,2})?)", java.util.regex.Pattern.CASE_INSENSITIVE);
+                java.util.regex.Matcher amountMatcher = extractAmountPattern.matcher(lowerText);
+
+                double amount = 0.0;
+
+                // FIX 1: Removed the double 'find()' trap! Only use the while loop.
+                while (amountMatcher.find()) {
+                    try {
+                        double parsedAmount = Double.parseDouble(amountMatcher.group(1));
+                        if (parsedAmount > 0) {
+                            amount = parsedAmount;
+                            break; // Found a valid > 0 amount, exit loop!
+                        }
+                    } catch (NumberFormatException e) {
+                        Log.e(TAG, "Failed to parse amount digits, skipping...", e);
+                    }
+                }
+
+                if (amount > 0) {
+                    // FIX 2: Variables used inside a background thread lambda must be "effectively final"
+                    final double finalAmount = amount;
+
+                    // 1. Create the Transaction object
+                    com.luminous.financetracker.data.entity.Transaction newTransaction = new com.luminous.financetracker.data.entity.Transaction(
+                            finalAmount,
+                            title != null ? title : "Auto-Logged Expense",
+                            Constants.CATEGORY_OTHERS,
+                            System.currentTimeMillis()
+                    );
+
+                    // 2. Insert into the database
+                    repository.insert(newTransaction, () -> {
+                        Log.d(TAG, "Successfully saved RM" + finalAmount + " to Dashboard Database!");
+
+                        // 3. Fire the clickable push notification
+                        Intent intent = new Intent(this, DashboardActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+                        PendingIntent pendingIntent = PendingIntent.getActivity(
+                                this,
+                                (int) System.currentTimeMillis(),
+                                intent,
+                                PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+                        );
+
+                        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Constants.CHANNEL_BUDGET_ALERTS)
+                                .setSmallIcon(R.mipmap.meowneytrack_beta)
+                                .setContentTitle("Meowney Track Beta")
+                                .setContentText("RM " + finalAmount + " saved to Dashboard")
+                                .setAutoCancel(true)
+                                .setContentIntent(pendingIntent);
+
+                        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+                        if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                            notificationManager.notify((int) System.currentTimeMillis(), builder.build());
+                        }
+                    });
+
+                    return; // Successfully processed the expense, exit the method here!
+                }
+            }
         }
     }
 

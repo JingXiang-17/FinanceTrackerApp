@@ -25,10 +25,10 @@
         <!-- Main Entry Point (Dashboard) -->
         <activity
             android:name=".ui.dashboard.DashboardActivity"
+            android:launchMode="singleTask"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity> <!-- Other Activities -->

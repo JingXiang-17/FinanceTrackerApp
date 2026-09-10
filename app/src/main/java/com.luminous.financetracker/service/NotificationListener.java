@@ -1,10 +1,15 @@
 package com.luminous.financetracker.service;
 
+import android.app.PendingIntent;
+import android.content.Intent;
 import android.os.Bundle;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.util.Log;
 import android.util.LruCache;
+
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 
 import com.luminous.financetracker.data.database.FinanceDatabase;
 import com.luminous.financetracker.data.entity.Transaction;
@@ -16,6 +21,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.luminous.financetracker.ui.dashboard.DashboardActivity;
+import com.luminous.financetracker.R;
 
 public class NotificationListener extends NotificationListenerService {
 
@@ -57,7 +65,7 @@ public class NotificationListener extends NotificationListenerService {
     );
 
     private static final Pattern AMOUNT_PATTERN = Pattern.compile(
-            "(?:rm|myr)\\s?(\\d+\\.\\d{2})",
+            "\\b(?:rm|myr)\\s*(\\d+(?:\\.\\d{1,2})?)",
             Pattern.CASE_INSENSITIVE
     );
 
@@ -113,43 +121,76 @@ public class NotificationListener extends NotificationListenerService {
         if (CASH_IN_PATTERN.matcher(lowerText).find()) return;
         if (!EXPENSE_PATTERN.matcher(lowerText).find()) return;
 
+        // --- REFACTORED: SKIP RM0 AND INSERT ---
         Matcher amountMatcher = AMOUNT_PATTERN.matcher(text);
 
-        if (amountMatcher.find()) {
+        double finalAmount = 0.0;
+
+        // Loop to skip over RM0 traps
+        while (amountMatcher.find()) {
             try {
-                String amountString = amountMatcher.group(1);
-                double amount = Double.parseDouble(amountString);
-
-                // Extract Merchant Name dynamically instead of hardcoding "Unknown"
-                String merchantName = "Unknown";
-                Matcher merchantMatcher = MERCHANT_PATTERN.matcher(text);
-                if (merchantMatcher.find()) {
-                    merchantName = merchantMatcher.group(1).trim();
+                double parsedAmount = Double.parseDouble(amountMatcher.group(1));
+                if (parsedAmount > 0) {
+                    finalAmount = parsedAmount;
+                    break;
                 }
-
-                String paymentMethod = determinePaymentMethod(packageName);
-
-                Transaction newTransaction = new Transaction(
-                        amount,
-                        text,
-                        Constants.CATEGORY_OTHERS, // Extracted from Constants
-                        currentTime,
-                        paymentMethod,
-                        merchantName,
-                        ""
-                );
-
-                // Execute Insert WITH CALLBACK to prevent the Race Condition
-                repository.insert(newTransaction, () -> {
-                    // This block only runs AFTER the database confirms the save is complete
-                    FinanceDatabase db = FinanceDatabase.getDatabase(getApplicationContext());
-                    BudgetAlertManager.checkBudgets(getApplicationContext(), db.transactionDao());
-                    Log.d(TAG, "Transaction saved and budget checked: RM" + amount);
-                });
-
             } catch (NumberFormatException e) {
                 Log.e(TAG, "Failed to parse amount from notification: " + text, e);
             }
+        }
+
+        if (finalAmount > 0) {
+            // Extract Merchant Name dynamically instead of hardcoding "Unknown"
+            String merchantName = "Unknown";
+            Matcher merchantMatcher = MERCHANT_PATTERN.matcher(text);
+            if (merchantMatcher.find()) {
+                merchantName = merchantMatcher.group(1).trim();
+            }
+
+            String paymentMethod = determinePaymentMethod(packageName);
+
+            Transaction newTransaction = new Transaction(
+                    finalAmount,
+                    text,
+                    Constants.CATEGORY_OTHERS,
+                    currentTime,
+                    paymentMethod,
+                    merchantName,
+                    ""
+            );
+
+            // Execute Insert WITH CALLBACK to prevent the Race Condition
+            final double savedAmount = finalAmount; // Effectively final for the lambda
+
+            repository.insert(newTransaction, () -> {
+                FinanceDatabase db = FinanceDatabase.getDatabase(getApplicationContext());
+                BudgetAlertManager.checkBudgets(getApplicationContext(), db.transactionDao());
+                Log.d(TAG, "Transaction saved and budget checked: RM" + savedAmount);
+
+                Intent intent = new Intent(this, DashboardActivity.class);
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+                int uniqueRequestCode = (int) System.currentTimeMillis();
+
+                PendingIntent pendingIntent = PendingIntent.getActivity(
+                        this,
+                        uniqueRequestCode,
+                        intent,
+                        PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
+                );
+
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Constants.CHANNEL_BUDGET_ALERTS)
+                        .setSmallIcon(R.mipmap.meowneytrack)
+                        .setContentTitle("Meowney Track")
+                        .setContentText("RM " + savedAmount + " saved to " + paymentMethod)
+                        .setAutoCancel(true)
+                        .setContentIntent(pendingIntent);
+
+                NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+                if (androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    notificationManager.notify((int) System.currentTimeMillis(), builder.build());
+                }
+            });
         }
     }
 

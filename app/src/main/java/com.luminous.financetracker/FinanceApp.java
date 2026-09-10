@@ -1,10 +1,15 @@
 package com.luminous.financetracker;
 
 import android.app.Application;
-import android.content.SharedPreferences;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.os.Build;
 import androidx.appcompat.app.AppCompatDelegate;
 
 public class FinanceApp extends Application {
+
+    // Must match the exact string you used in your NotificationBuilder!
+    public static final String CHANNEL_ID = "default_channel";
 
     @Override
     public void onCreate() {
@@ -13,13 +18,25 @@ public class FinanceApp extends Application {
         // Force Light Mode globally
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
 
-        /*// 1. Load the user's saved theme preference
-        SharedPreferences prefs = getSharedPreferences("ThemePrefs", MODE_PRIVATE);
+        // --- ADDED: Create the Notification Channel ---
+        createNotificationChannel();
+    }
 
-        // 2. Default to MODE_NIGHT_FOLLOW_SYSTEM if they haven't chosen one yet
-        int savedTheme = prefs.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+    private void createNotificationChannel() {
+        // Notification channels are only required on Android 8.0 (Oreo) and higher
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = "Transaction Alerts";
+            String description = "Notifications when new transactions are auto-logged";
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
 
-        // 3. Apply the theme globally to all activities instantly
-        AppCompatDelegate.setDefaultNightMode(savedTheme);*/
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+
+            // Register the channel with the system
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channel);
+            }
+        }
     }
 }

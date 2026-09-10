@@ -131,3 +131,14 @@ This project is actively evolving. Core stable features are documented above in 
 ### Beta version corresponding to v1.1.2
 - Saved in `App version beta` directory, those apk containing feature that logs my financial notifications, just for my personal ml use.
 - I won't receive any logs of your financial details btw so no worries.
+
+### Beta version v1.1.3
+- Ignore SMS start with RM0 (OTP) for finance data logging.
+
+### v1.1.3
+- Fixed bug where the app is logging RM 0.00 as expense amount.
+
+### Beta version v1.1.4
+- Fixed bug where the app is logging RM 0.00 as expense amount.
+- Editing transaction details now refresh the dashboard immediately.
+- Tapping on notifications will open the app.

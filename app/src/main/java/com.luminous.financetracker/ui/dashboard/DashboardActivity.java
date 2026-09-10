@@ -404,12 +404,30 @@ public class DashboardActivity extends AppCompatActivity {
                 LinearLayout.LayoutParams.WRAP_CONTENT);
         params.setMargins(0, 24, 0, 0);
         popupRecyclerView.setLayoutParams(params);
+        layout.addView(popupRecyclerView);
 
         TransactionAdapter popupAdapter = new TransactionAdapter();
-        allTransactions.sort((t1, t2) -> Long.compare(t2.getTimestamp(), t1.getTimestamp()));
-        popupAdapter.submitList(allTransactions);
         popupRecyclerView.setAdapter(popupAdapter);
-        layout.addView(popupRecyclerView);
+
+        // A container to hold the freshest data for the search bar to use
+        List<Transaction> latestData = new ArrayList<>();
+
+        // 1. Assign the observer to a variable so we can kill it later
+        androidx.lifecycle.Observer<List<Transaction>> dialogObserver = liveTransactions -> {
+            if (liveTransactions != null) {
+                // Update our local cache for the search bar
+                latestData.clear();
+                latestData.addAll(liveTransactions);
+                latestData.sort((t1, t2) -> Long.compare(t2.getTimestamp(), t1.getTimestamp()));
+
+                // Re-run the search filter instantly to keep the UI perfectly synced
+                String currentQuery = searchInput.getText().toString().toLowerCase().trim();
+                filterAndSubmitToPopup(currentQuery, latestData, popupAdapter);
+            }
+        };
+
+        // Attach the observer
+        transactionViewModel.getAllTransactions().observe(this, dialogObserver);
 
         popupAdapter.setOnItemClickListener(new TransactionAdapter.OnItemClickListener() {
             @Override
@@ -429,20 +447,8 @@ public class DashboardActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String query = s.toString().toLowerCase().trim();
-                List<Transaction> filteredList = new ArrayList<>();
-
-                for (Transaction t : allTransactions) {
-                    String title = t.getText() != null ? t.getText().toLowerCase() : "";
-                    String merchant = t.getMerchantName() != null ? t.getMerchantName().toLowerCase() : "";
-                    String notes = t.getNotes() != null ? t.getNotes().toLowerCase() : "";
-                    String category = t.getCategory() != null ? t.getCategory().toLowerCase() : "";
-
-                    if (title.contains(query) || merchant.contains(query) || notes.contains(query) || category.contains(query)) {
-                        filteredList.add(t);
-                    }
-                }
-                popupAdapter.submitList(filteredList);
+                // Use the latestData list, NOT the old allTransactions list!
+                filterAndSubmitToPopup(s.toString().toLowerCase().trim(), latestData, popupAdapter);
             }
 
             @Override
@@ -453,7 +459,30 @@ public class DashboardActivity extends AppCompatActivity {
                 .setTitle("All Transactions")
                 .setView(layout)
                 .setPositiveButton("Close", (dialog, which) -> dialog.dismiss())
+                // 2. Kill the observer when the dialog closes to prevent memory leaks!
+                .setOnDismissListener(dialog -> transactionViewModel.getAllTransactions().removeObserver(dialogObserver))
                 .show();
+    }
+
+    // A quick helper method to keep your code clean
+    private void filterAndSubmitToPopup(String query, List<Transaction> listToFilter, TransactionAdapter adapter) {
+        if (query.isEmpty()) {
+            adapter.submitList(new ArrayList<>(listToFilter));
+            return;
+        }
+
+        List<Transaction> filteredList = new ArrayList<>();
+        for (Transaction t : listToFilter) {
+            String title = t.getText() != null ? t.getText().toLowerCase() : "";
+            String merchant = t.getMerchantName() != null ? t.getMerchantName().toLowerCase() : "";
+            String notes = t.getNotes() != null ? t.getNotes().toLowerCase() : "";
+            String category = t.getCategory() != null ? t.getCategory().toLowerCase() : "";
+
+            if (title.contains(query) || merchant.contains(query) || notes.contains(query) || category.contains(query)) {
+                filteredList.add(t);
+            }
+        }
+        adapter.submitList(filteredList);
     }
 
     private void showEditTransactionDialog(Transaction transaction) {
@@ -517,18 +546,25 @@ public class DashboardActivity extends AppCompatActivity {
 
                     if (!title.isEmpty() && !amountStr.isEmpty()) {
                         try {
-                            // FIX #3: Catch unparseable inputs here as well
                             double amount = Double.parseDouble(amountStr);
                             if (amount < 0) throw new NumberFormatException("Amount cannot be negative");
 
-                            transaction.setText(title);
-                            transaction.setAmount(amount);
-                            transaction.setMerchantName(merchantInput.getText().toString().trim());
-                            transaction.setPaymentMethod(paymentInput.getText().toString().trim());
-                            transaction.setCategory(cbFixed.isChecked() ? Constants.CATEGORY_FIXED : categorySpinner.getSelectedItem().toString());
-                            transaction.setNotes(notesInput.getText().toString().trim());
+                            // --- THE FIX: Create a brand new object instead of mutating the old one ---
+                            String category = cbFixed.isChecked() ? Constants.CATEGORY_FIXED : categorySpinner.getSelectedItem().toString();
 
-                            transactionViewModel.update(transaction);
+                            Transaction updatedTransaction = new Transaction(amount, title, category, transaction.getTimestamp());
+
+                            // Crucial: You MUST set the ID so Room knows to overwrite the existing row!
+                            updatedTransaction.setId(transaction.getId());
+
+                            updatedTransaction.setMerchantName(merchantInput.getText().toString().trim());
+                            updatedTransaction.setPaymentMethod(paymentInput.getText().toString().trim());
+                            updatedTransaction.setNotes(notesInput.getText().toString().trim());
+
+                            // Send the new clone to the database
+                            transactionViewModel.update(updatedTransaction);
+                            // --------------------------------------------------------------------------
+
                         } catch (NumberFormatException e) {
                             Toast.makeText(DashboardActivity.this, "Please enter a valid positive amount.", Toast.LENGTH_SHORT).show();
                         }
