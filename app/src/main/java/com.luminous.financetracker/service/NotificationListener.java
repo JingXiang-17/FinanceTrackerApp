@@ -45,6 +45,10 @@ public class NotificationListener extends NotificationListenerService {
     );
 
     // 2. Pre-compiled Regex Patterns
+    private static final Pattern PRE_AUTH_PATTERN = Pattern.compile(
+            "\\b(pre-authorisation|pre-authorization|hold|earmarked|deposit|temporary)\\b",
+            Pattern.CASE_INSENSITIVE
+    );
     private static final Pattern PROMO_PATTERN = Pattern.compile(
             "\\b(to get|to win|min(imum)? spend(t)?|up to|win rm|t&c|terms( and | & )conditions|promo(tions?)?|expir(e|ing|y)|cashback|voucher|survey|reward|redeem|discount|% off|deal|limited time|pay later)\\b",
             Pattern.CASE_INSENSITIVE
@@ -117,6 +121,7 @@ public class NotificationListener extends NotificationListenerService {
         // --- PARSING PIPELINE ---
         String lowerText = text.toLowerCase();
 
+        if (PRE_AUTH_PATTERN.matcher(lowerText).find()) return;
         if (PROMO_PATTERN.matcher(lowerText).find()) return;
         if (CASH_IN_PATTERN.matcher(lowerText).find()) return;
         if (!EXPENSE_PATTERN.matcher(lowerText).find()) return;

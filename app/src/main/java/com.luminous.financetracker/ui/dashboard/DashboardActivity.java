@@ -374,6 +374,8 @@ public class DashboardActivity extends AppCompatActivity {
                             newTransaction.setNotes(notesInput.getText().toString().trim());
 
                             transactionViewModel.insert(newTransaction);
+                            com.luminous.financetracker.data.database.FinanceDatabase db = com.luminous.financetracker.data.database.FinanceDatabase.getDatabase(DashboardActivity.this);
+                            com.luminous.financetracker.util.BudgetAlertManager.checkBudgets(DashboardActivity.this, db.transactionDao());
                         } catch (NumberFormatException e) {
                             Toast.makeText(DashboardActivity.this, "Please enter a valid positive amount.", Toast.LENGTH_SHORT).show();
                         }

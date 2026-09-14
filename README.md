@@ -135,10 +135,16 @@ This project is actively evolving. Core stable features are documented above in 
 ### Beta version v1.1.3
 - Ignore SMS start with RM0 (OTP) for finance data logging.
 
-### v1.1.3
-- Fixed bug where the app is logging RM 0.00 as expense amount.
-
 ### Beta version v1.1.4
 - Fixed bug where the app is logging RM 0.00 as expense amount.
 - Editing transaction details now refresh the dashboard immediately.
 - Tapping on notifications will open the app.
+
+### v1.1.3
+- Fixed bug where the app is logging RM 0.00 as expense amount.
+- Fixed double logging bug when pre-auth notification from bank is posted.
+
+### Beta version v1.1.5
+- Fixed double logging bug when pre-auth notification from bank is posted.
+- The app now can log merchant name.
+- Fixed budget posting bugs, now 80% and overbudget will post a notification like before.
