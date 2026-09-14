@@ -46,7 +46,7 @@ public class NotificationListener extends NotificationListenerService {
 
     // 2. Pre-compiled Regex Patterns
     private static final Pattern PRE_AUTH_PATTERN = Pattern.compile(
-            "\\b(pre-authorisation|pre-authorization|hold|earmarked|deposit|temporary)\\b",
+            "\\b(authorize|authorise|authorization|authorisation|pre-authorisation|pre-authorization|hold|earmarked|deposit|temporary)\\b",
             Pattern.CASE_INSENSITIVE
     );
     private static final Pattern PROMO_PATTERN = Pattern.compile(
@@ -187,7 +187,7 @@ public class NotificationListener extends NotificationListenerService {
                 NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Constants.CHANNEL_BUDGET_ALERTS)
                         .setSmallIcon(R.mipmap.meowneytrack)
                         .setContentTitle("Meowney Track")
-                        .setContentText("RM " + savedAmount + " saved to " + paymentMethod)
+                        .setContentText("RM " + savedAmount + " expense is logged from " + paymentMethod + ", saved to Dashboard.")
                         .setAutoCancel(true)
                         .setContentIntent(pendingIntent);
 

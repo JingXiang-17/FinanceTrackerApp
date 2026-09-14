@@ -55,7 +55,7 @@ public class NotificationListenerBeta extends NotificationListenerService {
 
     // --- NEW FIX: Traps temporary holds and pre-authorizations to prevent double logging ---
     private static final Pattern PRE_AUTH_PATTERN = Pattern.compile(
-            "\\b(pre-authorisation|pre-authorization|hold|earmarked|deposit|temporary)\\b",
+            "\\b(authorize|authorise|authorization|authorisation|pre-authorisation|pre-authorization|hold|earmarked|deposit|temporary)\\b",
             Pattern.CASE_INSENSITIVE
     );
 
@@ -208,7 +208,7 @@ public class NotificationListenerBeta extends NotificationListenerService {
                 NotificationCompat.Builder builder = new NotificationCompat.Builder(this, Constants.CHANNEL_BUDGET_ALERTS)
                         .setSmallIcon(R.mipmap.meowneytrack_beta)
                         .setContentTitle("Meowney Track Beta")
-                        .setContentText("RM " + savedAmount + " saved to " + paymentMethod)
+                        .setContentText("RM " + savedAmount + " expense is logged from " + paymentMethod +", saved to Dashboard.")
                         .setAutoCancel(true)
                         .setContentIntent(pendingIntent);
 
