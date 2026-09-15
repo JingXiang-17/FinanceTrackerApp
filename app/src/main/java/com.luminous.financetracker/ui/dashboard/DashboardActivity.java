@@ -449,6 +449,11 @@ public class DashboardActivity extends AppCompatActivity {
             @Override
             public void onDeleteClick(Transaction transaction) {
                 transactionViewModel.delete(transaction);
+
+                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                    com.luminous.financetracker.data.database.FinanceDatabase db = com.luminous.financetracker.data.database.FinanceDatabase.getDatabase(DashboardActivity.this);
+                    com.luminous.financetracker.util.BudgetAlertManager.checkBudgets(DashboardActivity.this, db.transactionDao());
+                }, 500);
             }
         });
 
