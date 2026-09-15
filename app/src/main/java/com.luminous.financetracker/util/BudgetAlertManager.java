@@ -71,8 +71,6 @@ public class BudgetAlertManager {
                 Log.d(TAG, "Firing 100% alert for " + period);
                 sendNotification(context, period + " Budget Exceeded \u26A0\uFE0F", message, notificationId);
                 prefs.edit().putBoolean(key100, true).apply();
-            } else {
-                Log.d(TAG, period + " 100% alert was already sent previously.");
             }
         } else if (percentage >= 80) {
             if (!alreadyNotified80) {
@@ -80,8 +78,16 @@ public class BudgetAlertManager {
                 Log.d(TAG, "Firing 80% warning for " + period);
                 sendNotification(context, period + " Budget Warning \uD83D\uDEA8", message, notificationId);
                 prefs.edit().putBoolean(key80, true).apply();
-            } else {
-                Log.d(TAG, period + " 80% alert was already sent previously.");
+            }
+            // If they were at 100% but edited down to 85%, reset the 100% lock so it can fire again later!
+            if (alreadyNotified100) {
+                prefs.edit().putBoolean(key100, false).apply();
+            }
+        } else {
+            // THE FIX: If spending drops below 80% (e.g., you deleted a transaction), reset ALL locks!
+            if (alreadyNotified80 || alreadyNotified100) {
+                prefs.edit().putBoolean(key80, false).putBoolean(key100, false).apply();
+                Log.d(TAG, period + " budget dropped safely below 80%. Notification locks reset.");
             }
         }
     }
@@ -126,13 +132,28 @@ public class BudgetAlertManager {
             }
         }
 
+        // 1. Create the Intent to open your Dashboard
+        android.content.Intent intent = new android.content.Intent(context, com.luminous.financetracker.ui.dashboard.DashboardActivity.class);
+
+        // This flag ensures it doesn't open a duplicate app window if one is already in the background
+        intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        // 2. Wrap it in a PendingIntent
+        android.app.PendingIntent pendingIntent = android.app.PendingIntent.getActivity(
+                context,
+                notificationId, // We use your existing notificationId (101 or 102) to keep request codes unique
+                intent,
+                android.app.PendingIntent.FLAG_IMMUTABLE | android.app.PendingIntent.FLAG_UPDATE_CURRENT
+        );
+
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, Constants.CHANNEL_BUDGET_ALERTS)
                 .setSmallIcon(R.mipmap.meowneytrack_beta)
                 .setContentTitle(title)
                 .setContentText(message)
                 .setStyle(new NotificationCompat.BigTextStyle().bigText(message))
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
-                .setAutoCancel(true);
+                .setAutoCancel(true) // Automatically dismisses the notification when tapped
+                .setContentIntent(pendingIntent); // 3. Attach the click action here!
 
         NotificationManagerCompat.from(context).notify(notificationId, builder.build());
         Log.d(TAG, "Notification successfully pushed to system: " + title);

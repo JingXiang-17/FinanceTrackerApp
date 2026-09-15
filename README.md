@@ -148,3 +148,7 @@ This project is actively evolving. Core stable features are documented above in 
 - Fixed double logging bug when pre-auth notification from bank is posted.
 - The app now can log merchant name.
 - Fixed budget posting bugs, now 80% and overbudget will post a notification like before.
+
+### v1.1.4 && Beta version v1.1.6
+- Fixed race condition that causes budget alert not triggered.
+- Fixed budget alert notification unclickable bug.

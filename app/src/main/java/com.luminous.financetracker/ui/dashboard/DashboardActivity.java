@@ -130,6 +130,11 @@ public class DashboardActivity extends AppCompatActivity {
             @Override
             public void onDeleteClick(Transaction transaction) {
                 transactionViewModel.delete(transaction);
+
+                new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                    com.luminous.financetracker.data.database.FinanceDatabase db = com.luminous.financetracker.data.database.FinanceDatabase.getDatabase(DashboardActivity.this);
+                    com.luminous.financetracker.util.BudgetAlertManager.checkBudgets(DashboardActivity.this, db.transactionDao());
+                }, 500);
             }
         });
 
@@ -374,8 +379,12 @@ public class DashboardActivity extends AppCompatActivity {
                             newTransaction.setNotes(notesInput.getText().toString().trim());
 
                             transactionViewModel.insert(newTransaction);
-                            com.luminous.financetracker.data.database.FinanceDatabase db = com.luminous.financetracker.data.database.FinanceDatabase.getDatabase(DashboardActivity.this);
-                            com.luminous.financetracker.util.BudgetAlertManager.checkBudgets(DashboardActivity.this, db.transactionDao());
+
+                            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                                com.luminous.financetracker.data.database.FinanceDatabase db = com.luminous.financetracker.data.database.FinanceDatabase.getDatabase(DashboardActivity.this);
+                                com.luminous.financetracker.util.BudgetAlertManager.checkBudgets(DashboardActivity.this, db.transactionDao());
+                            }, 500);
+
                         } catch (NumberFormatException e) {
                             Toast.makeText(DashboardActivity.this, "Please enter a valid positive amount.", Toast.LENGTH_SHORT).show();
                         }
@@ -565,6 +574,11 @@ public class DashboardActivity extends AppCompatActivity {
 
                             // Send the new clone to the database
                             transactionViewModel.update(updatedTransaction);
+
+                            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                                com.luminous.financetracker.data.database.FinanceDatabase db = com.luminous.financetracker.data.database.FinanceDatabase.getDatabase(DashboardActivity.this);
+                                com.luminous.financetracker.util.BudgetAlertManager.checkBudgets(DashboardActivity.this, db.transactionDao());
+                            }, 500);
                             // --------------------------------------------------------------------------
 
                         } catch (NumberFormatException e) {
